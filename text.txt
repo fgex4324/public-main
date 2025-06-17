@@ -1,0 +1,4659 @@
+// public/app.js
+
+// عناصر واجهة المستخدم الرئيسية
+const showPostsBtn = document.getElementById('showPostsBtn');
+const showChatsBtn = document.getElementById('showChatsBtn');
+const showAcquaintancesBtn = document.getElementById('showAcquaintancesBtn'); // زر المعارف
+const showProfileBtn = document.getElementById('showProfileBtn');
+const toggleDarkModeBtn = document.getElementById('toggleDarkModeBtn');
+
+const postsSection = document.getElementById('postsSection');
+const chatsSection = document.getElementById('chatsSection');
+const acquaintancesSection = document.getElementById('acquaintancesSection'); // قسم المعارف
+const profileSection = document.getElementById('profileSection');
+
+// عناصر المنشورات
+const postContentInput = document.getElementById('postContent');
+const privatePostCheckbox = document.getElementById('privatePostCheckbox'); // صندوق تحديد منشور خاص
+const publishPostBtn = document.getElementById('publishPostBtn');
+const postsList = document.getElementById('postsList');
+const refreshPostsBtn = document.getElementById('refreshPostsBtn');
+
+// عناصر الملف الشخصي
+const profileAvatar = document.getElementById('profileAvatar');
+const profileUsername = document.getElementById('profileUsername');
+const profileEmail = document.getElementById('profileEmail');
+const postsCountSpan = document.getElementById('postsCount');
+const acquaintancesCountSpan = document.getElementById('acquaintancesCount'); // عداد المعارف
+const savedPostsCountSpan = document.getElementById('savedPostsCount'); // عداد المنشورات المحفوظة
+const editUsernameBtn = document.getElementById('editUsernameBtn');
+const newUsernameInput = document.getElementById('newUsernameInput');
+const saveUsernameBtn = document.getElementById('saveUsernameBtn');
+const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+const profileImageUpload = document.getElementById('profileImageUpload');
+const profileStatusMessage = document.getElementById('profileStatusMessage');
+const editStatusMessageBtn = document.getElementById('editStatusMessageBtn');
+const privateProfileCheckbox = document.getElementById('privateProfileCheckbox'); // صندوق تحديد قفل الملف الشخصي
+const savedPostsList = document.getElementById('savedPostsList'); // قائمة المنشورات المحفوظة
+
+// عناصر إعدادات Firebase (للمسؤولين فقط)
+const showSettingsBtn = document.getElementById('showSettingsBtn');
+const settingsCard = document.getElementById('settingsCard');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const authDomainInput = document.getElementById('authDomainInput');
+const databaseURLInput = document.getElementById('databaseURLInput');
+const projectIdInput = document.getElementById('projectIdInput');
+const storageBucketInput = document.getElementById('storageBucketInput');
+const messagingSenderIdInput = document.getElementById('messagingSenderIdInput');
+const appIdInput = document.getElementById('appIdInput');
+const saveFirebaseConfigBtn = document.getElementById('saveFirebaseConfigBtn');
+const firebaseConfigMessage = document.getElementById('firebaseConfigMessage');
+
+// عناصر الدردشة
+const searchUserInput = document.getElementById('searchUserInput');
+const searchUserBtn = document.getElementById('searchUserBtn');
+const searchResultsList = document.getElementById('searchResults');
+const chatsList = document.getElementById('chatsList');
+const chatContainer = document.getElementById('chatContainer');
+const closeChatBtn = document.getElementById('closeChatBtn');
+const chatHeaderName = document.getElementById('chatHeaderName');
+const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
+const chatStatus = document.getElementById('chatStatus');
+const messagesList = document.getElementById('messagesList');
+const messageInputForm = document.getElementById('messageInputForm');
+const messageInput = document.getElementById('messageInput');
+const sendMessageBtn = document.getElementById('sendMessageBtn');
+const recordAudioBtn = document.getElementById('recordAudioBtn');
+const emojiPickerBtn = document.getElementById('emojiPickerBtn');
+const emojiPicker = document.getElementById('emojiPicker');
+
+// عناصر قسم المتصلين الآن (الشريط الجانبي)
+const onlineUsersSidebar = document.getElementById('onlineUsersSidebar');
+const onlineUsersList = document.getElementById('onlineUsersList');
+const onlineUsersCountSpan = document.getElementById('onlineUsersCount');
+
+// متغيرات حالة التطبيق
+let currentChatId = null;
+let currentChatName = null;
+let currentChatAvatar = null;
+let isCurrentChatGroup = false;
+let isCurrentChatNewsChannel = false;
+let currentOtherParticipantId = null;
+
+// إلغاء الاشتراكات في الوقت الفعلي
+let unsubscribeMessages = null;
+let unsubscribeChatStatus = null;
+let unsubscribeTypingStatus = null;
+let unsubscribeAcquaintances = null;
+let unsubscribeOnlineUsers = null;
+let unsubscribeSavedPosts = null;
+
+// مؤقت حالة الكتابة
+let typingTimer;
+const TYPING_TIMEOUT = 3000; // 3 ثواني
+
+// الإيموجي المستخدمة للتفاعلات على المنشورات
+const REACTION_EMOJIS = {
+    heart: '❤',
+    tears: '😫',
+    clown: '🤡',
+    thumbsUp: '👍',
+    thumbsDown: '👎'
+};
+
+
+// --- وظائف عامة للواجهة ---
+
+/**
+ * تبديل القسم النشط في الواجهة.
+ * @param {string} sectionId - معرف القسم المراد إظهاره (مثلاً: 'postsSection').
+ */
+function showSection(sectionId) {
+    // إخفاء جميع الأقسام أولاً
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+    // إظهار القسم المطلوب
+    document.getElementById(sectionId).classList.add('active');
+
+    // تحديث حالة أزرار التنقل في الرأس (Nav Buttons)
+    document.querySelectorAll('header nav .nav-button').forEach(btn => btn.classList.remove('active'));
+    if (sectionId === 'postsSection') showPostsBtn.classList.add('active');
+    else if (sectionId === 'chatsSection') showChatsBtn.classList.add('active');
+    else if (sectionId === 'acquaintancesSection') showAcquaintancesBtn.classList.add('active');
+    else if (sectionId === 'profileSection') showProfileBtn.classList.add('active');
+
+    // إخفاء نتائج البحث عند التبديل بعيداً عن قسم الدردشات
+    searchResultsList.innerHTML = '';
+    searchUserInput.value = '';
+
+    // إغلاق الدردشة المفتوحة إذا تم التبديل إلى قسم آخر غير الدردشات
+    if (sectionId !== 'chatsSection' && chatContainer.classList.contains('active')) {
+        closeChat();
+    }
+    // إخفاء لوحة الإيموجي
+    emojiPicker.classList.remove('active');
+
+    // تحميل البيانات الخاصة بالقسم عند التبديل إليه
+    if (sectionId === 'postsSection') {
+        loadPosts();
+    } else if (sectionId === 'chatsSection') {
+        loadChats();
+    } else if (sectionId === 'profileSection') {
+        if (currentUser) {
+            loadUserProfile(currentUser.uid);
+            loadSavedPosts(currentUser.uid); // تحميل المنشورات المحفوظة
+        }
+    } else if (sectionId === 'acquaintancesSection') {
+        if (currentUser) {
+            loadAcquaintances(); // تحميل قائمة المعارف
+        }
+    }
+}
+
+/**
+ * تنسيق الوقت لعرضه بشكل نسبي (مثلاً: "5 دقائق مضت").
+ * @param {firebase.firestore.Timestamp} timestamp - كائن Timestamp من Firestore.
+ * @returns {string} - السلسلة الزمنية المنسقة.
+ */
+function formatTime(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffSeconds < 60) return 'الآن';
+    else if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} دقيقة مضت`;
+    else if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} ساعة مضت`;
+    else if (diffSeconds < 604800) return `${Math.floor(diffSeconds / 86400)} يوم مضت`;
+    else return date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/**
+ * تنسيق الوقت لعرضه بشكل دقيق (مثلاً: "اليوم، 10:30 ص").
+ * @param {firebase.firestore.Timestamp} timestamp - كائن Timestamp من Firestore.
+ * @returns {string} - السلسلة الزمنية المنسقة.
+ */
+function formatPreciseTime(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const time = date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    if (isToday) return `اليوم، ${time}`;
+    else if (isYesterday) return `أمس، ${time}`;
+    else return date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) + `، ${time}`;
+}
+
+// تبديل الوضع الليلي/النهاري
+toggleDarkModeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+});
+
+// تطبيق الوضع الليلي عند تحميل الصفحة إذا كان مفعلاً سابقاً
+if (localStorage.getItem('darkMode') === 'enabled') {
+    document.body.classList.add('dark-mode');
+}
+
+// --- وظائف قسم المنشورات ---
+
+/**
+ * معالج لزر "نشر" المنشورات.
+ */
+publishPostBtn.addEventListener('click', async () => {
+    const content = postContentInput.value.trim();
+    if (!content) {
+        alert('الرجاء كتابة شيء لنشره.');
+        return;
+    }
+
+    publishPostBtn.disabled = true;
+    publishPostBtn.textContent = 'جاري النشر...';
+    
+    try {
+        const isPrivate = privatePostCheckbox.checked; // الحصول على حالة الخصوصية
+        await createPost(content, isPrivate);
+        postContentInput.value = '';
+        privatePostCheckbox.checked = false; // إعادة تعيين حالة الخصوصية
+        alert('تم نشر المنشور بنجاح!');
+    } catch (error) {
+        alert('فشل نشر المنشور: ' + error.message);
+    } finally {
+        publishPostBtn.disabled = false;
+        publishPostBtn.innerHTML = '<i class="fas fa-paper-plane"></i> نشر';
+    }
+});
+
+/**
+ * معالج لزر "تحديث" المنشورات.
+ */
+refreshPostsBtn.addEventListener('click', loadPosts);
+
+/**
+ * عرض قائمة المنشورات في الواجهة.
+ * @param {Array<Object>} posts - مصفوفة من كائنات المنشورات.
+ */
+function displayPosts(posts) {
+    postsList.innerHTML = ''; // مسح المنشورات القديمة
+    
+    if (posts.length === 0) {
+        postsList.innerHTML = '<div class="empty">لا توجد منشورات حاليًا. كن أول من ينشر!</div>';
+        return;
+    }
+    
+    posts.forEach(post => {
+        // منطق إخفاء المنشورات الخاصة عن غير المعارف أو غير صاحب المنشور
+        const isMyPost = currentUser && post.userId === currentUser.uid;
+        const isAcquaintance = currentUserProfileData && currentUserProfileData.acquaintances && currentUserProfileData.acquaintances[post.userId];
+        
+        if (post.isPrivate && !isMyPost && !isAcquaintance) {
+            return; // تخطي عرض المنشور إذا كان خاصًا والمستخدم ليس صاحبه أو معرفًا له
+        }
+
+        const postItem = document.createElement('div');
+        postItem.className = 'post-item';
+        postItem.setAttribute('data-post-id', post.id);
+
+        // إنشاء أزرار التفاعل والإيموجي
+        let reactionsHtml = '';
+        const userSelectedReaction = post.userReactions?.[currentUser?.uid];
+        for (const emojiType in REACTION_EMOJIS) {
+            const isActive = userSelectedReaction === emojiType;
+            reactionsHtml += `
+                <button class="reaction-btn ${isActive ? 'active' : ''}" data-reaction-type="${emojiType}" data-post-id="${post.id}">
+                    ${REACTION_EMOJIS[emojiType]} <span class="reaction-count">${post.reactions?.[emojiType] || 0}</span>
+                </button>
+            `;
+        }
+
+        postItem.innerHTML = `
+            <div class="post-header">
+                <img src="${post.userProfilePic || defaultAvatarUrl}" alt="صورة الملف الشخصي" class="post-avatar">
+                <span class="post-username">${post.username}</span>
+                ${isMyPost ? `
+                    <div class="post-actions">
+                        <button class="edit-post-btn" data-post-id="${post.id}">تعديل</button>
+                        <button class="delete-post-btn" data-post-id="${post.id}">حذف</button>
+                        <!-- زر جعل المنشور خاص يحتاج منطق إضافي لتغيير isPrivate -->
+                    </div>
+                ` : ''}
+            </div>
+            <p class="post-content">${post.content}</p>
+            <div class="post-footer">
+                <span class="time">${formatTime(post.timestamp)} ${post.editedAt ? '(معدّل)' : ''}</span>
+                <div class="post-interactions">
+                    <div class="reactions-container">
+                        ${reactionsHtml}
+                    </div>
+                    <button class="comment-btn" data-post-id="${post.id}">
+                        <i class="fas fa-comment-dots"></i> تعليقات (${post.commentsCount || 0})
+                    </button>
+                    <button class="save-post-btn" data-post-id="${post.id}" data-saved="${currentUserProfileData?.savedPosts?.[post.id] ? 'true' : 'false'}">
+                        <i class="${currentUserProfileData?.savedPosts?.[post.id] ? 'fas' : 'far'} fa-bookmark"></i> حفظ
+                    </button>
+                </div>
+            </div>
+            <div class="comments-section" id="comments-${post.id}">
+                <h4>التعليقات (<span class="comments-count">${post.commentsCount || 0}</span>)</h4>
+                <div class="comment-input-area">
+                    <textarea placeholder="اكتب تعليقًا..." data-post-id="${post.id}"></textarea>
+                    <button class="primary-button add-comment-btn" data-post-id="${post.id}">
+                        <i class="fas fa-plus"></i> إضافة تعليق
+                    </button>
+                </div>
+                <div class="comments-list" id="commentsList-${post.id}">
+                    <!-- التعليقات ستعرض هنا بواسطة JavaScript -->
+                    <div class="empty">لا توجد تعليقات بعد.</div>
+                </div>
+            </div>
+        `;
+        postsList.appendChild(postItem);
+
+        // إضافة مستمعي الأحداث للتفاعلات
+        postItem.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if (currentUser) {
+                    const postId = e.currentTarget.dataset.postId;
+                    const reactionType = e.currentTarget.dataset.reactionType;
+                    try {
+                        await addReaction(postId, currentUser.uid, reactionType);
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                } else {
+                    alert('الرجاء تسجيل الدخول للتفاعل مع المنشورات.');
+                }
+            });
+        });
+
+        // إضافة مستمعي الأحداث للتعليقات
+        const commentInput = postItem.querySelector(`.comments-section textarea`);
+        const addCommentButton = postItem.querySelector(`.add-comment-btn`);
+        addCommentButton.addEventListener('click', async () => {
+            const commentContent = commentInput.value.trim();
+            if (commentContent && currentUser) {
+                addCommentButton.disabled = true;
+                addCommentButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // أيقونة تحميل
+                try {
+                    await addComment(post.id, currentUser.uid, currentUserProfileData.username, currentUserProfileData.profilePictureUrl, commentContent);
+                    commentInput.value = '';
+                } catch (error) {
+                    alert('فشل إضافة التعليق: ' + error.message);
+                } finally {
+                    addCommentButton.disabled = false;
+                    addCommentButton.innerHTML = '<i class="fas fa-plus"></i> إضافة تعليق';
+                }
+            } else if (!commentContent) {
+                alert('الرجاء كتابة تعليق.');
+            } else {
+                alert('الرجاء تسجيل الدخول لإضافة تعليق.');
+            }
+        });
+
+        // تحميل التعليقات للمنشور
+        getComments(post.id, comments => {
+            const commentsListElement = postItem.querySelector(`#commentsList-${post.id}`);
+            commentsListElement.innerHTML = '';
+            if (comments.length === 0) {
+                commentsListElement.innerHTML = '<div class="empty">لا توجد تعليقات بعد.</div>';
+            } else {
+                comments.forEach(comment => {
+                    const commentEl = document.createElement('div');
+                    commentEl.className = 'comment-item';
+                    commentEl.innerHTML = `
+                        <img src="${comment.userProfilePic || defaultAvatarUrl}" alt="صورة التعليق" class="comment-avatar">
+                        <div class="comment-content-wrapper">
+                            <span class="comment-author">${comment.username}</span>
+                            <p class="comment-text">${comment.content}</p>
+                            <div class="comment-time">${formatTime(comment.timestamp)}</div>
+                        </div>
+                    `;
+                    commentsListElement.appendChild(commentEl);
+                });
+            }
+            postItem.querySelector('.comments-count').textContent = comments.length;
+        });
+
+        // أحداث أزرار إدارة المنشور (تعديل/حذف)
+        if (isMyPost) {
+            // زر التعديل
+            postItem.querySelector('.edit-post-btn').addEventListener('click', () => {
+                const currentContentElement = postItem.querySelector('.post-content');
+                const originalContent = currentContentElement.textContent;
+
+                const textarea = document.createElement('textarea');
+                textarea.className = 'edit-post-textarea';
+                textarea.value = originalContent;
+                textarea.rows = 4;
+
+                const saveBtn = document.createElement('button');
+                saveBtn.textContent = 'حفظ التعديل';
+                saveBtn.className = 'primary-button';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'إلغاء';
+                cancelBtn.className = 'secondary-button';
+
+                // إخفاء المحتوى الحالي وعرض مربع النص والأزرار
+                currentContentElement.style.display = 'none';
+                postItem.querySelector('.post-actions').style.display = 'none';
+                
+                const footer = postItem.querySelector('.post-footer');
+                footer.insertBefore(textarea, footer.firstChild);
+                footer.appendChild(saveBtn);
+                footer.appendChild(cancelBtn);
+
+                saveBtn.addEventListener('click', async () => {
+                    const newContent = textarea.value.trim();
+                    if (newContent && currentUser) {
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+                        try {
+                            await updatePost(post.id, newContent, currentUser.uid);
+                            alert('تم تعديل المنشور بنجاح.');
+                            // إعادة تحديث الواجهة أو إعادة تحميل المنشورات
+                            loadPosts();
+                        } catch (error) {
+                            alert('فشل تعديل المنشور: ' + error.message);
+                        } finally {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ التعديل';
+                            // إخفاء عناصر التعديل واستعادة المحتوى الأصلي
+                            textarea.remove();
+                            saveBtn.remove();
+                            cancelBtn.remove();
+                            currentContentElement.style.display = 'block';
+                            postItem.querySelector('.post-actions').style.display = 'flex';
+                        }
+                    } else {
+                        alert('الرجاء كتابة محتوى صالح للمنشور.');
+                    }
+                });
+
+                cancelBtn.addEventListener('click', () => {
+                    textarea.remove();
+                    saveBtn.remove();
+                    cancelBtn.remove();
+                    currentContentElement.style.display = 'block';
+                    postItem.querySelector('.post-actions').style.display = 'flex';
+                });
+            });
+
+            // زر الحذف
+            postItem.querySelector('.delete-post-btn').addEventListener('click', async () => {
+                if (confirm('هل أنت متأكد أنك تريد حذف هذا المنشور؟ سيتم حذف جميع التعليقات أيضاً.')) {
+                    try {
+                        await deletePost(post.id, currentUser.uid);
+                        alert('تم حذف المنشور بنجاح.');
+                        // إعادة تحديث الواجهة أو إعادة تحميل المنشورات
+                        loadPosts();
+                    } catch (error) {
+                        alert('فشل حذف المنشور: ' + error.message);
+                    }
+                }
+            });
+        }
+
+        // زر حفظ المنشور
+        const savePostButton = postItem.querySelector('.save-post-btn');
+        const bookmarkIcon = savePostButton.querySelector('i');
+        
+        savePostButton.addEventListener('click', async () => {
+            if (!currentUser) {
+                alert('الرجاء تسجيل الدخول لحفظ المنشورات.');
+                return;
+            }
+            try {
+                if (savePostButton.dataset.saved === 'true') { // إذا كان محفوظاً
+                    await unsavePost(currentUser.uid, post.id);
+                    bookmarkIcon.classList.remove('fas');
+                    bookmarkIcon.classList.add('far');
+                    savePostButton.dataset.saved = 'false';
+                    alert('تم إزالة حفظ المنشور.');
+                } else { // إذا لم يكن محفوظاً
+                    await savePost(currentUser.uid, post.id);
+                    bookmarkIcon.classList.remove('far');
+                    bookmarkIcon.classList.add('fas');
+                    savePostButton.dataset.saved = 'true';
+                    alert('تم حفظ المنشور بنجاح.');
+                }
+                // تحديث عداد المنشورات المحفوظة في الملف الشخصي
+                loadUserProfile(currentUser.uid);
+            } catch (error) {
+                alert('فشل حفظ/إزالة حفظ المنشور: ' + error.message);
+            }
+        });
+    });
+}
+
+/**
+ * تحميل وعرض المنشورات في الواجهة.
+ */
+function loadPosts() {
+    postsList.innerHTML = '<div class="loading">جاري تحميل المنشورات...</div>';
+    getPosts(displayPosts);
+}
+
+
+// --- وظائف قسم الملف الشخصي ---
+
+/**
+ * تحميل وعرض بيانات الملف الشخصي للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ */
+async function loadUserProfile(userId) {
+    const doc = await getUserProfile(userId);
+    if (doc.exists) {
+        currentUserProfileData = doc.data(); // تحديث بيانات الملف الشخصي العالمية
+        displayUserProfile(currentUserProfileData);
+    } else {
+        console.error("User profile not found for ID:", userId);
+        // في حالة عدم وجود ملف شخصي، يتم التعامل معها في auth.js
+        profileUsername.textContent = currentUser.email.split('@')[0];
+        profileEmail.textContent = currentUser.email;
+        profileAvatar.src = defaultAvatarUrl;
+        postsCountSpan.textContent = '0';
+        acquaintancesCountSpan.textContent = '0';
+        savedPostsCountSpan.textContent = '0';
+        profileStatusMessage.textContent = 'لا توجد حالة محددة.';
+    }
+
+    // إظهار/إخفاء زر إعدادات Firebase للمسؤولين
+    if (isAdminUser()) {
+        showSettingsBtn.style.display = 'block';
+        populateFirebaseConfigInputs();
+    } else {
+        showSettingsBtn.style.display = 'none';
+        settingsCard.style.display = 'none';
+    }
+}
+
+/**
+ * عرض بيانات الملف الشخصي في الواجهة.
+ * @param {Object} user - كائن بيانات المستخدم من Firestore.
+ */
+function displayUserProfile(user) {
+    profileUsername.textContent = user.username || 'مستخدم جديد';
+    profileEmail.textContent = user.email || 'لا يوجد بريد إلكتروني';
+    profileAvatar.src = user.profilePictureUrl || defaultAvatarUrl;
+    postsCountSpan.textContent = user.postsCount || 0;
+    // عدد المعارف يتم جلبه من حقل `acquaintances` في Firestore
+    acquaintancesCountSpan.textContent = Object.keys(user.acquaintances || {}).length || 0; 
+    savedPostsCountSpan.textContent = Object.keys(user.savedPosts || {}).length || 0;
+    profileStatusMessage.textContent = user.statusMessage || 'لا توجد حالة محددة.';
+    privateProfileCheckbox.checked = user.isProfilePrivate || false;
+}
+
+// معالجات أحداث تعديل اسم المستخدم
+editUsernameBtn.addEventListener('click', () => {
+    profileUsername.style.display = 'none';
+    editUsernameBtn.style.display = 'none';
+    newUsernameInput.style.display = 'block';
+    saveUsernameBtn.style.display = 'block';
+    newUsernameInput.value = profileUsername.textContent;
+    newUsernameInput.focus();
+});
+
+saveUsernameBtn.addEventListener('click', async () => {
+    const newUsername = newUsernameInput.value.trim();
+    if (newUsername && currentUser) {
+        if (newUsername === currentUserProfileData.username) {
+            alert('الاسم الجديد هو نفس الاسم الحالي.');
+            profileUsername.style.display = 'block';
+            editUsernameBtn.style.display = 'block';
+            newUsernameInput.style.display = 'none';
+            saveUsernameBtn.style.display = 'none';
+            return;
+        }
+
+        saveUsernameBtn.disabled = true;
+        saveUsernameBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+        try {
+            const success = await updateUsername(currentUser.uid, newUsername);
+            if (success) {
+                profileUsername.textContent = newUsername;
+                currentUserProfileData.username = newUsername; // تحديث البيانات المحلية
+                alert('تم تحديث اسم المستخدم بنجاح.');
+            }
+        } catch (error) {
+            alert('خطأ: ' + error.message);
+        } finally {
+            saveUsernameBtn.disabled = false;
+            saveUsernameBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الاسم';
+            profileUsername.style.display = 'block';
+            editUsernameBtn.style.display = 'block';
+            newUsernameInput.style.display = 'none';
+            saveUsernameBtn.style.display = 'none';
+        }
+    } else {
+        alert('الرجاء إدخال اسم مستخدم صالح.');
+    }
+});
+
+// معالج حدث لتعديل حالة المزاج
+editStatusMessageBtn.addEventListener('click', async () => {
+    const currentStatus = currentUserProfileData.statusMessage || '';
+    const newStatus = prompt('أدخل حالة المزاج الجديدة:', currentStatus);
+    if (newStatus !== null && newStatus.trim() !== currentStatus.trim()) {
+        try {
+            await updateStatusMessage(currentUser.uid, newStatus.trim());
+            profileStatusMessage.textContent = newStatus.trim();
+            currentUserProfileData.statusMessage = newStatus.trim();
+            alert('تم تحديث حالة المزاج بنجاح.');
+        } catch (error) {
+            alert('فشل تحديث حالة المزاج: ' + error.message);
+        }
+    }
+});
+
+// معالج حدث لتغيير صورة الملف الشخصي
+changeAvatarBtn.addEventListener('click', () => {
+    profileImageUpload.click(); // يحفز النقر على حقل إدخال الملف المخفي
+});
+
+profileImageUpload.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file && currentUser) {
+        alert("وظيفة تغيير الصورة غير مدعومة مباشرة من خلال Firebase Free Tier لهذا السياق. تحتاج لخدمة رفع خارجية (مثل Imgur للحصول على رابط مباشر) أو Firebase Storage.");
+        // مثال: يمكنك استخدام خدمة خارجية لرفع الصورة والحصول على رابط لها:
+        // const imageUrl = await uploadImageToExternalService(file);
+        // if (imageUrl) {
+        //     await updateProfilePicture(currentUser.uid, imageUrl);
+        //     profileAvatar.src = imageUrl; // تحديث فوري للواجهة
+        //     currentUserProfileData.profilePictureUrl = imageUrl; // تحديث البيانات المحلية
+        //     alert('تم تحديث صورة الملف الشخصي بنجاح.');
+        // } else {
+        //     alert('فشل رفع الصورة.');
+        // }
+    }
+});
+
+// معالج حدث لتبديل خصوصية الملف الشخصي
+privateProfileCheckbox.addEventListener('change', async () => {
+    if (!currentUser) return;
+    const isPrivate = privateProfileCheckbox.checked;
+    try {
+        await toggleProfilePrivacy(currentUser.uid, isPrivate);
+        currentUserProfileData.isProfilePrivate = isPrivate; // تحديث البيانات المحلية
+        alert(`تم ${isPrivate ? 'قفل' : 'إلغاء قفل'} ملفك الشخصي بنجاح.`);
+    } catch (error) {
+        alert('فشل تغيير خصوصية الملف الشخصي: ' + error.message);
+    }
+});
+
+/**
+ * تحميل وعرض المنشورات المحفوظة للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ */
+function loadSavedPosts(userId) {
+    if (unsubscribeSavedPosts) {
+        unsubscribeSavedPosts(); // إلغاء الاشتراك السابق لتجنب التكرار
+    }
+    savedPostsList.innerHTML = '<div class="loading">جاري تحميل المنشورات المحفوظة...</div>';
+    unsubscribeSavedPosts = getSavedPosts(userId, (posts) => {
+        savedPostsList.innerHTML = '';
+        if (posts.length === 0) {
+            savedPostsList.innerHTML = '<div class="empty">لا توجد منشورات محفوظة.</div>';
+            savedPostsCountSpan.textContent = '0';
+            return;
+        }
+        savedPostsCountSpan.textContent = posts.length;
+        posts.forEach(post => {
+            const postItem = document.createElement('div');
+            postItem.className = 'post-item';
+            postItem.innerHTML = `
+                <div class="post-header">
+                    <img src="${post.userProfilePic || defaultAvatarUrl}" alt="صورة الملف الشخصي" class="post-avatar">
+                    <span class="post-username">${post.username}</span>
+                </div>
+                <p class="post-content">${post.content}</p>
+                <div class="post-footer">
+                    <span class="time">${formatTime(post.timestamp)}</span>
+                    <button class="save-post-btn saved" data-post-id="${post.id}" data-saved="true">
+                        <i class="fas fa-bookmark"></i> إزالة حفظ
+                    </button>
+                </div>
+            `;
+            savedPostsList.appendChild(postItem);
+
+            // معالج لزر إزالة الحفظ
+            postItem.querySelector('.save-post-btn').addEventListener('click', async (e) => {
+                if (!currentUser) return;
+                const postId = e.currentTarget.dataset.postId;
+                try {
+                    await unsavePost(currentUser.uid, postId);
+                    alert('تم إزالة حفظ المنشور.');
+                    // سيتم تحديث القائمة تلقائياً عبر listener لـ getSavedPosts
+                } catch (error) {
+                    alert('فشل إزالة حفظ المنشور: ' + error.message);
+                }
+            });
+        });
+    });
+}
+
+
+// --- وظائف إعدادات Firebase (للمسؤولين فقط) ---
+
+showSettingsBtn.addEventListener('click', () => {
+    if (isAdminUser()) {
+        settingsCard.style.display = settingsCard.style.display === 'none' ? 'block' : 'none';
+        if (settingsCard.style.display === 'block') {
+            populateFirebaseConfigInputs();
+        }
+    } else {
+        alert("ليس لديك صلاحية الوصول إلى هذه الإعدادات.");
+    }
+});
+
+/**
+ * ملء حقول إعدادات Firebase في الواجهة بقيمها الحالية.
+ */
+function populateFirebaseConfigInputs() {
+    apiKeyInput.value = firebaseConfig.apiKey || '';
+    authDomainInput.value = firebaseConfig.authDomain || '';
+    databaseURLInput.value = firebaseConfig.databaseURL || '';
+    projectIdInput.value = firebaseConfig.projectId || '';
+    storageBucketInput.value = firebaseConfig.storageBucket || '';
+    messagingSenderIdInput.value = firebaseConfig.messagingSenderId || '';
+    appIdInput.value = firebaseConfig.appId || '';
+    firebaseConfigMessage.textContent = '';
+}
+
+/**
+ * معالج لزر "حفظ إعدادات Firebase".
+ */
+saveFirebaseConfigBtn.addEventListener('click', () => {
+    if (!isAdminUser()) {
+        firebaseConfigMessage.textContent = 'ليس لديك صلاحية لتعديل الإعدادات.';
+        firebaseConfigMessage.style.color = 'var(--error-color)';
+        return;
+    }
+
+    const newConfig = {
+        apiKey: apiKeyInput.value.trim(),
+        authDomain: authDomainInput.value.trim(),
+        databaseURL: databaseURLInput.value.trim(),
+        projectId: projectIdInput.value.trim(),
+        storageBucket: storageBucketInput.value.trim(),
+        messagingSenderId: messagingSenderIdInput.value.trim(),
+        appId: appIdInput.value.trim()
+    };
+
+    const hasEmptyField = Object.values(newConfig).some(val => val === '');
+    if (hasEmptyField) {
+        firebaseConfigMessage.style.color = 'var(--error-color)';
+        firebaseConfigMessage.textContent = 'الرجاء ملء جميع حقول إعدادات Firebase المطلوبة.';
+        return;
+    }
+
+    saveFirebaseConfigBtn.disabled = true;
+    saveFirebaseConfigBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+    try {
+        const success = updateFirebaseConfig(newConfig); // دالة من firebase-config.js
+        if (success) {
+            firebaseConfigMessage.style.color = 'var(--primary-color)';
+            firebaseConfigMessage.textContent = 'تم حفظ إعدادات Firebase بنجاح! يرجى إعادة تحميل الصفحة لتطبيق التغييرات.';
+        } else {
+            firebaseConfigMessage.style.color = 'var(--error-color)';
+            firebaseConfigMessage.textContent = 'فشل حفظ الإعدادات. تحقق من القيم المدخلة.';
+        }
+    } catch (error) {
+        firebaseConfigMessage.style.color = 'var(--error-color)';
+        firebaseConfigMessage.textContent = 'خطأ أثناء حفظ الإعدادات: ' + error.message;
+        console.error("Error saving Firebase config:", error);
+    } finally {
+        saveFirebaseConfigBtn.disabled = false;
+        saveFirebaseConfigBtn.innerHTML = '<i class="fas fa-save"></i> حفظ إعدادات Firebase';
+    }
+});
+
+
+// --- وظائف قسم المعارف (Acquaintances) ---
+
+showAcquaintancesBtn.addEventListener('click', () => showSection('acquaintancesSection'));
+refreshAcquaintancesBtn.addEventListener('click', loadAcquaintances);
+
+/**
+ * تحميل وعرض قائمة المعارف للمستخدم الحالي.
+ */
+function loadAcquaintances() {
+    if (!currentUser) {
+        acquaintancesList.innerHTML = '<div class="empty">الرجاء تسجيل الدخول لعرض المعارف.</div>';
+        acquaintancesCountSpan.textContent = '0';
+        return;
+    }
+
+    acquaintancesList.innerHTML = '<div class="loading">جاري تحميل المعارف...</div>';
+
+    if (unsubscribeAcquaintances) {
+        unsubscribeAcquaintances(); // إلغاء الاشتراك السابق
+    }
+
+    unsubscribeAcquaintances = getAcquaintances(currentUser.uid, (acquaintances) => {
+        acquaintancesList.innerHTML = '';
+        if (acquaintances.length === 0) {
+            acquaintancesList.innerHTML = '<div class="empty">لا توجد لديك معارف بعد.</div>';
+            acquaintancesCountSpan.textContent = '0';
+            return;
+        }
+
+        acquaintancesCountSpan.textContent = acquaintances.length;
+        acquaintances.forEach(acquaintance => {
+            const acquaintanceItem = document.createElement('div');
+            acquaintanceItem.className = 'user-item card'; // استخدام نفس تصميم بطاقة المستخدم
+            acquaintanceItem.innerHTML = `
+                <img src="${acquaintance.profilePictureUrl || defaultAvatarUrl}" alt="صورة المعرف" class="user-avatar">
+                <div class="user-info">
+                    <h3>${acquaintance.username}</h3>
+                    <!-- لا نعرض البريد الإلكتروني هنا -->
+                </div>
+                <button class="secondary-button remove-acquaintance-btn" data-acquaintance-id="${acquaintance.id}">
+                    <i class="fas fa-user-minus"></i> إزالة
+                </button>
+            `;
+            acquaintancesList.appendChild(acquaintanceItem);
+
+            // معالج زر إزالة المعارف
+            acquaintanceItem.querySelector('.remove-acquaintance-btn').addEventListener('click', async (e) => {
+                const targetAcquaintanceId = e.currentTarget.dataset.acquaintanceId;
+                const confirmRemoval = confirm(`هل أنت متأكد أنك تريد إزالة ${acquaintance.username} من معارفك؟`);
+                if (confirmRemoval) {
+                    try {
+                        await removeAcquaintance(currentUser.uid, targetAcquaintanceId);
+                        alert(`تم إزالة ${acquaintance.username} من معارفك.`);
+                        // loadAcquaintances(); // المستمع سيحدث القائمة تلقائيا
+                    } catch (error) {
+                        alert('فشل إزالة المعرف: ' + error.message);
+                    }
+                }
+            });
+            // إضافة حدث لفتح الملف الشخصي عند النقر على عنصر المعرف (يمكن تطويره لاحقاً لعرض ملفات شخصية عامة)
+            acquaintanceItem.addEventListener('click', (e) => {
+                // منع فتح الملف الشخصي إذا تم النقر على زر الإزالة
+                if (!e.target.closest('.remove-acquaintance-btn')) {
+                    alert(`ستفتح صفحة الملف الشخصي للمعرف ${acquaintance.username} هنا. (ميزة قيد التطوير)`);
+                    // يمكنك هنا استدعاء دالة لفتح ملف شخصي عام: مثلاً showPublicProfile(acquaintance.id);
+                }
+            });
+        });
+    });
+}
+
+
+// --- وظائف قسم المتصلين الآن (الشريط الجانبي) ---
+
+/**
+ * تحميل وعرض قائمة المستخدمين المتصلين حاليا.
+ */
+function loadOnlineUsers() {
+    if (!currentUser) {
+        onlineUsersList.innerHTML = '<div class="empty">الرجاء تسجيل الدخول لعرض المتصلين.</div>';
+        onlineUsersCountSpan.textContent = '(0)';
+        return;
+    }
+
+    onlineUsersList.innerHTML = '<div class="loading">جاري تحميل المتصلين...</div>';
+
+    if (unsubscribeOnlineUsers) {
+        unsubscribeOnlineUsers(); // إلغاء الاشتراك السابق
+    }
+
+    unsubscribeOnlineUsers = getOnlineUsers((users) => {
+        onlineUsersList.innerHTML = '';
+        // تصفية المستخدم الحالي من قائمة المتصلين
+        const filteredUsers = users.filter(user => user.id !== currentUser.uid);
+        onlineUsersCountSpan.textContent = `(${filteredUsers.length})`;
+
+        if (filteredUsers.length === 0) {
+            onlineUsersList.innerHTML = '<div class="empty">لا يوجد متصلون آخرون حاليًا.</div>';
+            return;
+        }
+
+        filteredUsers.forEach(user => {
+            const userItem = document.createElement('li');
+            userItem.innerHTML = `
+                <span class="status-indicator online"></span>
+                <img src="${user.profilePictureUrl || defaultAvatarUrl}" alt="صورة ${user.username}" class="online-avatar">
+                <span>${user.username}</span>
+            `;
+            userItem.addEventListener('click', async () => {
+                // عند النقر على مستخدم متصل، افتح محادثة معه
+                if (currentUser && currentUser.uid !== user.id) {
+                    try {
+                        const chatId = await createChat([currentUser.uid, user.id]);
+                        if (chatId) {
+                            openChat(chatId, user.username, user.profilePictureUrl, false, false, user.id);
+                            showSection('chatsSection'); // الانتقال لقسم الدردشات وفتح الدردشة
+                        } else {
+                            alert('فشل بدء المحادثة.');
+                        }
+                    } catch (error) {
+                        alert('خطأ في بدء المحادثة: ' + error.message);
+                    }
+                }
+            });
+            onlineUsersList.appendChild(userItem);
+        });
+    });
+}
+
+
+// --- وظائف قسم الدردشات ---
+
+/**
+ * معالج لزر البحث عن المستخدمين.
+ */
+searchUserBtn.addEventListener('click', async () => {
+    const searchTerm = searchUserInput.value.trim();
+    if (!searchTerm) {
+        searchResultsList.innerHTML = '';
+        return;
+    }
+
+    searchResultsList.innerHTML = '<div class="loading">جاري البحث عن مستخدمين...</div>';
+    
+    try {
+        const users = await searchUsers(searchTerm); // البريد الإلكتروني مخفي من firestore.js
+        searchResultsList.innerHTML = '';
+        
+        if (users.length === 0) {
+            searchResultsList.innerHTML = '<div class="empty">لا توجد نتائج بحث مطابقة.</div>';
+            return;
+        }
+        
+        users.forEach(user => {
+            if (user.id === currentUser.uid) return; // لا تعرض المستخدم الحالي في نتائج البحث
+            
+            const userItem = document.createElement('div');
+            userItem.className = 'user-item card';
+            userItem.innerHTML = `
+                <img src="${user.profilePictureUrl || defaultAvatarUrl}" alt="صورة المستخدم" class="user-avatar">
+                <div class="user-info">
+                    <h3>${user.username}</h3>
+                </div>
+                <button class="primary-button add-acquaintance-btn" data-user-id="${user.id}">
+                    <i class="fas fa-user-plus"></i> إضافة كمعرف
+                </button>
+            `;
+            searchResultsList.appendChild(userItem);
+
+            // معالج لزر "إضافة كمعرف"
+            userItem.querySelector('.add-acquaintance-btn').addEventListener('click', async (e) => {
+                const userIdToAdd = e.currentTarget.dataset.userId;
+                if (currentUser && currentUser.uid !== userIdToAdd) {
+                    try {
+                        await sendAcquaintanceRequest(currentUser.uid, userIdToAdd);
+                        alert(`تمت إضافة ${user.username} كمعرف بنجاح!`);
+                        // تحديث بيانات الملف الشخصي ليعكس التغيير
+                        loadUserProfile(currentUser.uid); 
+                        e.currentTarget.disabled = true; // تعطيل الزر
+                        e.currentTarget.innerHTML = '<i class="fas fa-check"></i> تمت الإضافة';
+                    } catch (error) {
+                        alert('فشل إضافة المعرف: ' + error.message);
+                    }
+                } else if (currentUser.uid === userIdToAdd) {
+                    alert('لا يمكنك إضافة نفسك كمعرف.');
+                } else {
+                    alert('الرجاء تسجيل الدخول لإضافة المعارف.');
+                }
+            });
+
+            // معالج للنقر على عنصر المستخدم لفتح محادثة (ما عدا زر الإضافة)
+            userItem.addEventListener('click', async (e) => {
+                // تأكد أن النقر لم يكن على زر الإضافة
+                if (e.target.closest('.add-acquaintance-btn')) return;
+
+                if (!currentUser) {
+                    alert('الرجاء تسجيل الدخول لبدء محادثة.');
+                    return;
+                }
+                if (currentUser.uid === user.id) {
+                    alert('لا يمكنك بدء محادثة مع نفسك.');
+                    return;
+                }
+                // مسح نتائج البحث بعد اختيار مستخدم
+                searchResultsList.innerHTML = '';
+                searchUserInput.value = '';
+
+                try {
+                    const chatId = await createChat([currentUser.uid, user.id]);
+                    if (chatId) {
+                        openChat(chatId, user.username || user.email.split('@')[0], user.profilePictureUrl, false, false, user.id);
+                    } else {
+                        alert('فشل إنشاء/فتح المحادثة.');
+                    }
+                } catch (error) {
+                    alert('خطأ في بدء المحادثة: ' + error.message);
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Search users error:", error);
+        searchResultsList.innerHTML = `<div class="error-message">حدث خطأ أثناء البحث: ${error.message}</div>`;
+    }
+});
+
+/**
+ * تحميل وعرض قائمة الدردشات التي يشارك فيها المستخدم.
+ */
+async function loadChats() {
+    if (!currentUser) {
+        chatsList.innerHTML = '<div class="empty">الرجاء تسجيل الدخول لعرض الدردشات.</div>';
+        return;
+    }
+
+    chatsList.innerHTML = '<div class="loading">جاري تحميل الدردشات...</div>';
+
+    getParticipatingChats(currentUser.uid, async (chats) => {
+        chatsList.innerHTML = ''; // مسح القائمة الحالية
+
+        if (chats.length === 0) {
+            chatsList.innerHTML = '<div class="empty">لا توجد دردشات حاليًا. ابدأ محادثة جديدة!</div>';
+            return;
+        }
+
+        const chatItemsPromises = chats.map(async chatDoc => {
+            const chat = chatDoc;
+            const chatId = chat.id;
+
+            let chatName = chat.name || 'محادثة فردية';
+            let chatAvatar = defaultAvatarUrl;
+            let isGroup = chat.isGroup || false; // استخدام isGroup من Firestore
+            let isNewsChannel = chat.newsChannel || false;
+            let otherParticipantId = null;
+
+            // تحديد الاسم والصورة للدردشات العامة والخاصة
+            if (chat.publicChat) {
+                chatName = 'الدردشة العامة';
+                chatAvatar = 'https://via.placeholder.com/50/800080/FFFFFF?text=GC'; // أيقونة للدردشة العامة
+            } else if (chat.newsChannel) {
+                chatName = 'إعلانات الأخبار';
+                chatAvatar = 'https://via.placeholder.com/50/FFD700/000000?text=NEWS'; // أيقونة لقناة الأخبار
+            } else if (chat.publicGroup) {
+                 chatName = 'المحادثة الجماعية العامة';
+                 chatAvatar = 'https://via.placeholder.com/50/008080/FFFFFF?text=ALL'; // أيقونة للمجموعة العامة
+            }
+             else if (!isGroup) {
+                // للدردشات الفردية، ابحث عن المشارك الآخر
+                const otherParticipantsIds = Object.keys(chat.participants).filter(uid => uid !== currentUser.uid);
+                if (otherParticipantsIds.length > 0) {
+                    otherParticipantId = otherParticipantsIds[0];
+                    try {
+                        const otherUserDoc = await getUserProfile(otherParticipantId);
+                        if (otherUserDoc.exists) {
+                            const otherUser = otherUserDoc.data();
+                            chatName = otherUser.username || 'مستخدم غير معروف';
+                            chatAvatar = otherUser.profilePictureUrl || defaultAvatarUrl;
+                        } else {
+                            chatName = 'مستخدم غير معروف';
+                            chatAvatar = defaultAvatarUrl;
+                        }
+                    } catch (e) {
+                        console.error("Error fetching other user profile:", e);
+                        chatName = 'مستخدم غير معروف (خطأ)';
+                        chatAvatar = defaultAvatarUrl;
+                    }
+                }
+            }
+
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            if (chatId === currentChatId) {
+                chatItem.classList.add('active'); // تمييز الدردشة النشطة
+            }
+            chatItem.setAttribute('data-chat-id', chatId);
+
+            // هنا يمكنك إضافة منطق لعداد الرسائل غير المقروءة إذا كان متاحًا في بيانات الدردشة
+            const unreadCount = 0; // تحتاج إلى جلب هذا من Firestore
+            const unreadBadge = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
+
+            chatItem.innerHTML = `
+                <img src="${chatAvatar}" alt="صورة الدردشة" class="chat-avatar">
+                <div class="chat-item-content">
+                    <h3>${chatName}</h3>
+                    <p class="last-message">${chat.lastMessage || 'ابدأ محادثتك الأولى!'}</p>
+                </div>
+                <span class="time">${formatTime(chat.lastMessageAt)}</span>
+                ${unreadBadge}
+            `;
+
+            chatItem.addEventListener('click', () => {
+                openChat(chatId, chatName, chatAvatar, isGroup, isNewsChannel, otherParticipantId);
+            });
+            return chatItem;
+        });
+
+        const chatItems = await Promise.all(chatItemsPromises);
+        chatItems.forEach(item => chatsList.appendChild(item));
+
+        // التأكد من أن الدردشة النشطة حالياً تظل مميزة بعد إعادة تحميل القائمة
+        if (currentChatId) {
+            const activeChatItem = chatsList.querySelector(`[data-chat-id="${currentChatId}"]`);
+            if (activeChatItem) {
+                activeChatItem.classList.add('active');
+            }
+        }
+    });
+}
+
+/**
+ * فتح دردشة معينة وعرض رسائلها.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string} chatName - اسم الدردشة.
+ * @param {string} chatAvatar - رابط صورة الدردشة.
+ * @param {boolean} isGroupChat - هل هي دردشة جماعية؟
+ * @param {boolean} isNewsChannel - هل هي قناة أخبار (للقراءة فقط)؟
+ * @param {string} [otherId=null] - معرف المشارك الآخر في الدردشة الفردية.
+ */
+function openChat(chatId, chatName, chatAvatar, isGroupChat, isNewsChannel = false, otherId = null) {
+    currentChatId = chatId;
+    currentChatName = chatName;
+    currentChatAvatar = chatAvatar;
+    isCurrentChatGroup = isGroupChat;
+    isCurrentChatNewsChannel = isNewsChannel;
+    currentOtherParticipantId = otherId;
+
+    chatHeaderName.textContent = chatName;
+    chatHeaderAvatar.src = chatAvatar;
+    chatContainer.classList.add('active'); // إظهار حاوية الدردشة
+    chatsSection.classList.remove('active'); // إخفاء الشريط الجانبي للمحادثات على الموبايل
+
+    // إزالة تمييز الدردشة النشطة السابقة وإضافة تمييز للدردشة الحالية
+    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+    const activeChatItem = chatsList.querySelector(`[data-chat-id="${chatId}"]`);
+    if (activeChatItem) {
+        activeChatItem.classList.add('active');
+    }
+
+    // إظهار/إخفاء مربع إدخال الرسائل بناءً على نوع الدردشة (قناة أخبار للقراءة فقط)
+    if (isNewsChannel && !isAdminUser()) { // فقط المسؤول يمكنه الكتابة في قناة الأخبار
+        messageInputForm.style.display = 'none';
+    } else {
+        messageInputForm.style.display = 'flex';
+    }
+
+    // إلغاء اشتراكات حالة الدردشة السابقة
+    if (unsubscribeChatStatus) {
+        unsubscribeChatStatus();
+    }
+    if (unsubscribeTypingStatus) {
+        unsubscribeTypingStatus();
+    }
+    chatStatus.textContent = ''; // مسح حالة الدردشة القديمة
+
+    // الاستماع لحالة المستخدم الآخر (متصل/آخر ظهور) وحالة الكتابة في الدردشات الفردية
+    if (!isGroupChat && otherId) {
+        unsubscribeChatStatus = listenToUserStatus(otherId, (userData) => {
+            if (userData.isOnline) {
+                chatStatus.textContent = 'متصل الآن';
+                chatStatus.style.color = 'var(--online-indicator-color)';
+            } else {
+                chatStatus.textContent = `آخر ظهور: ${formatPreciseTime(userData.lastSeen)}`;
+                chatStatus.style.color = 'var(--text-light-color)';
+            }
+        });
+        unsubscribeTypingStatus = listenToTypingStatus(chatId, otherId, (isTyping) => {
+            if (isTyping) {
+                chatStatus.textContent = 'يكتب الآن...';
+                chatStatus.style.color = 'var(--primary-color)'; // لون مميز للكتابة
+            } else if (chatStatus.textContent === 'يكتب الآن...') {
+                // إذا توقف عن الكتابة، أعد عرض حالة الاتصال الأصلية
+                if (unsubscribeChatStatus) { // أعد الاشتراك في مستمع الحالة ليعود للعرض الطبيعي
+                    unsubscribeChatStatus();
+                }
+                unsubscribeChatStatus = listenToUserStatus(otherId, (userData) => {
+                    if (userData.isOnline) {
+                        chatStatus.textContent = 'متصل الآن';
+                        chatStatus.style.color = 'var(--online-indicator-color)';
+                    } else {
+                        chatStatus.textContent = `آخر ظهور: ${formatPreciseTime(userData.lastSeen)}`;
+                        chatStatus.style.color = 'var(--text-light-color)';
+                    }
+                });
+            }
+        });
+    }
+
+    loadMessages(chatId); // تحميل الرسائل للدردشة المفتوحة
+}
+
+/**
+ * إغلاق حاوية الدردشة والعودة إلى قائمة الدردشات.
+ */
+function closeChat() {
+    chatContainer.classList.remove('active');
+    chatsSection.classList.add('active'); // إظهار الشريط الجانبي للمحادثات
+    
+    // إلغاء جميع الاشتراكات المتعلقة بالدردشة الحالية
+    if (unsubscribeMessages) {
+        unsubscribeMessages();
+        unsubscribeMessages = null;
+    }
+    if (unsubscribeChatStatus) {
+        unsubscribeChatStatus();
+        unsubscribeChatStatus = null;
+    }
+    if (unsubscribeTypingStatus) {
+        unsubscribeTypingStatus();
+        unsubscribeTypingStatus = null;
+    }
+    
+    messagesList.innerHTML = ''; // مسح الرسائل من الواجهة
+    chatStatus.textContent = '';
+    currentChatId = null; // مسح معرف الدردشة الحالي
+    currentChatName = null;
+    currentChatAvatar = null;
+    isCurrentChatGroup = false;
+    isCurrentChatNewsChannel = false;
+    currentOtherParticipantId = null;
+}
+
+closeChatBtn.addEventListener('click', closeChat);
+
+/**
+ * عرض رسائل الدردشة في الواجهة.
+ * @param {Array<Object>} messages - مصفوفة من كائنات الرسائل.
+ */
+function displayMessages(messages) {
+    messagesList.innerHTML = '';
+    const messagesToMarkAsRead = [];
+    let firstUnreadMessageId = null; // لتحديد مكان فاصل "رسائل جديدة"
+
+    // عرض الرسائل بترتيب زمني صحيح (الأقدم في الأعلى، الأحدث في الأسفل)
+    // Firestore يرجعها هنا descending، لذا يجب عكسها أو استخدام flex-direction: column-reverse
+    // لقد قمنا بالفعل بتعيين flex-direction: column-reverse في CSS، لذا نضيفها مباشرة.
+
+    messages.forEach(message => {
+        const messageItem = document.createElement('div');
+        const isSentByCurrentUser = message.senderId === currentUser.uid;
+        messageItem.className = `message-item ${isSentByCurrentUser ? 'sent' : 'received'}`;
+        messageItem.setAttribute('data-message-id', message.id);
+
+        const senderUsername = message.senderUsername || 'مستخدم غير معروف';
+        // لا يوجد حقل userProfilePic في كائن الرسالة، لذا نستخدم defaultAvatarUrl
+        const senderProfilePic = defaultAvatarUrl;
+
+        // تحديد الرسائل غير المقروءة لتمييزها (للمستقبل فقط)
+        if (!isSentByCurrentUser && !(message.readBy && message.readBy[currentUser.uid])) {
+            messagesToMarkAsRead.push(message.id);
+            if (!firstUnreadMessageId) {
+                firstUnreadMessageId = message.id; // أول رسالة غير مقروءة
+            }
+        }
+
+        // عرض علامات الصح للرسائل المرسلة (تم الإرسال / تم القراءة)
+        let readStatusHtml = '';
+        if (isSentByCurrentUser) {
+            // تحقق مما إذا كان هناك مشاركون آخرون في الدردشة
+            const otherParticipantsIds = Object.keys(currentChatId === PUBLIC_GROUP_CHAT_ID ? {} : (isCurrentChatGroup ? {} : chatHeaderName.dataset.participants || {})).filter(id => id !== currentUser.uid);
+            
+            // ببساطة، إذا لم تكن دردشة جماعية وكان هناك طرف آخر وقرأ الرسالة
+            const otherUserRead = (message.readBy && currentOtherParticipantId && message.readBy[currentOtherParticipantId]);
+            
+            // تحقق مزدوج (✓✓) عندما يقرأ الطرف الآخر
+            readStatusHtml = `
+                <div class="message-status">
+                    <span class="check-icon fas fa-check ${otherUserRead ? 'read' : ''}"></span>
+                    <span class="check-icon fas fa-check ${otherUserRead ? 'read' : ''}"></span>
+                </div>
+            `;
+        }
+
+        messageItem.innerHTML = `
+            <img src="${senderProfilePic}" alt="صورة المرسل" class="message-avatar">
+            <div class="message-content">
+                ${!isSentByCurrentUser ? `<div class="message-sender">${senderUsername}</div>` : ''}
+                <p>${message.content}</p>
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+                ${readStatusHtml}
+            </div>
+        `;
+        messagesList.appendChild(messageItem);
+    });
+
+    // إضافة فاصل "رسائل جديدة" إذا كان هناك رسائل غير مقروءة
+    if (firstUnreadMessageId) {
+        const firstUnreadElement = messagesList.querySelector(`[data-message-id="${firstUnreadMessageId}"]`);
+        if (firstUnreadElement) {
+            const unreadDivider = document.createElement('div');
+            unreadDivider.className = 'unread-divider';
+            unreadDivider.textContent = 'رسائل جديدة';
+            messagesList.insertBefore(unreadDivider, firstUnreadElement);
+        }
+    }
+
+    // تمييز الرسائل كمقروءة في Firestore بعد عرضها للمستخدم
+    if (messagesToMarkAsRead.length > 0 && currentUser) {
+        markMessagesAsRead(currentChatId, messagesToMarkAsRead, currentUser.uid);
+    }
+
+    // التمرير لأسفل لعرض أحدث الرسائل
+    messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+/**
+ * تحميل رسائل دردشة معينة.
+ * @param {string} chatId - معرف الدردشة.
+ */
+function loadMessages(chatId) {
+    if (unsubscribeMessages) {
+        unsubscribeMessages(); // إلغاء الاشتراك السابق لتجنب تكرار البيانات
+    }
+    messagesList.innerHTML = '<div class="loading">جاري تحميل الرسائل...</div>';
+    unsubscribeMessages = getMessages(chatId, displayMessages); // الاستماع للرسائل في الوقت الفعلي
+}
+
+/**
+ * معالج لإرسال الرسائل.
+ */
+messageInputForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = messageInput.value.trim();
+    if (!content || !currentChatId || !currentUser) return; // التحقق من وجود المحتوى والدردشة والمستخدم
+
+    sendMessageBtn.disabled = true;
+    sendMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+    
+    try {
+        const senderUsername = currentUserProfileData.username; // استخدام اسم المستخدم من الملف الشخصي
+        const success = await sendMessage(currentChatId, currentUser.uid, senderUsername, content);
+        if (success) {
+            messageInput.value = ''; // مسح حقل الإدخال
+            messageInput.style.height = 'auto'; // إعادة تعيين ارتفاع حقل الإدخال
+            await updateTypingStatus(currentChatId, currentUser.uid, false); // إيقاف مؤشر الكتابة
+        }
+    } catch (error) {
+        alert('خطأ في إرسال الرسالة: ' + error.message);
+    } finally {
+        sendMessageBtn.disabled = false;
+        sendMessageBtn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال';
+    }
+});
+
+// ضبط ارتفاع حقل إدخال الرسائل تلقائياً عند الكتابة
+messageInput.addEventListener('input', async () => {
+    messageInput.style.height = 'auto'; // إعادة تعيين الارتفاع للحساب الصحيح
+    messageInput.style.height = messageInput.scrollHeight + 'px'; // ضبط الارتفاع بناءً على المحتوى
+
+    // تحديث حالة الكتابة للمستخدم
+    if (currentUser && currentChatId) {
+        await updateTypingStatus(currentChatId, currentUser.uid, true);
+        clearTimeout(typingTimer); // مسح المؤقت السابق
+        typingTimer = setTimeout(async () => {
+            await updateTypingStatus(currentChatId, currentUser.uid, false); // إيقاف مؤشر الكتابة بعد فترة
+        }, TYPING_TIMEOUT);
+    }
+});
+
+// معالج زر الرسائل الصوتية (ميزة قيد التطوير)
+recordAudioBtn.addEventListener('click', () => {
+    alert("وظيفة الرسائل الصوتية غير مطبقة بعد. تتطلب الوصول إلى الميكروفون وتحميل الملفات.");
+});
+
+// معالج زر لوحة الإيموجي
+emojiPickerBtn.addEventListener('click', () => {
+    emojiPicker.classList.toggle('active'); // تبديل رؤية لوحة الإيموجي
+    if (emojiPicker.classList.contains('active')) {
+        // بناء لوحة الإيموجي (يمكن توسيعها لتشمل المزيد من الإيموجي)
+        emojiPicker.innerHTML = `
+            <span class="emoji-item">😀</span>
+            <span class="emoji-item">👋</span>
+            <span class="emoji-item">👍</span>
+            <span class="emoji-item">❤️</span>
+            <span class="emoji-item">😂</span>
+            <span class="emoji-item">🤔</span>
+            <span class="emoji-item">🎉</span>
+            <span class="emoji-item">👏</span>
+            <span class="emoji-item">😎</span>
+            <span class="emoji-item">🤩</span>
+            <span class="emoji-item">😭</span>
+            <span class="emoji-item">😤</span>
+            <span class="emoji-item">😡</span>
+            <span class="emoji-item">🥺</span>
+            <span class="emoji-item">🤯</span>
+            <span class="emoji-item">😴</span>
+        `;
+        emojiPicker.querySelectorAll('.emoji-item').forEach(span => {
+            span.addEventListener('click', () => {
+                messageInput.value += span.textContent; // إضافة الإيموجي إلى حقل الإدخال
+                messageInput.focus();
+                messageInput.style.height = 'auto'; // ضبط ارتفاع حقل الإدخال
+                messageInput.style.height = messageInput.scrollHeight + 'px';
+                emojiPicker.classList.remove('active'); // إخفاء لوحة الإيموجي
+            });
+        });
+    }
+});
+
+// إخفاء لوحة الإيموجي عند النقر خارجها
+document.addEventListener('click', (e) => {
+    if (!emojiPicker.contains(e.target) && e.target !== emojiPickerBtn && emojiPicker.classList.contains('active')) {
+        emojiPicker.classList.remove('active');
+    }
+});
+
+
+// --- معالجات أحداث التنقل بين الأقسام ---
+showPostsBtn.addEventListener('click', () => showSection('postsSection'));
+showChatsBtn.addEventListener('click', () => showSection('chatsSection'));
+showAcquaintancesBtn.addEventListener('click', () => showSection('acquaintancesSection'));
+showProfileBtn.addEventListener('click', () => showSection('profileSection'));
+
+
+// --- الإعدادات الأولية عند تحميل التطبيق ---
+
+// عند تحميل محتوى DOM بالكامل، نقوم بتهيئة بعض الوظائف.
+document.addEventListener('DOMContentLoaded', () => {
+    // إذا كان المستخدم مسجل الدخول بالفعل، قم بتحديث حالته إلى "متصل" وتحميل قائمة المتصلين
+    if (auth.currentUser) {
+        updateUserStatus(auth.currentUser.uid, true);
+        loadOnlineUsers();
+    }
+});
+
+// عند إغلاق النافذة أو علامة التبويب، قم بتحديث حالة المستخدم إلى "غير متصل"
+// (يتم التعامل مع هذا في auth.js بواسطة addEventListener('beforeunload'))
+
+
+
+
+// public/auth.js
+
+// عناصر واجهة المستخدم الرئيسية الخاصة بالمصادقة والشاشة الرئيسية
+const authScreen = document.getElementById('authScreen');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authSubmitBtn = document.getElementById('authSubmitBtn'); // زر تسجيل الدخول/إنشاء حساب
+const authError = document.getElementById('authError');
+const toggleAuthMode = document.getElementById('toggleAuthMode'); // رابط التبديل بين وضع الدخول/التسجيل
+
+const mainApp = document.getElementById('mainApp');
+const logoutBtn = document.getElementById('logoutBtn');
+const loadingScreen = document.getElementById('loadingScreen');
+
+// متغيرات لتخزين بيانات المستخدم الحالي وملفه الشخصي من Firestore
+let currentUser = null; // كائن المستخدم من Firebase Authentication
+let currentUserProfileData = null; // بيانات الملف الشخصي للمستخدم من Firestore (مثلاً: الاسم، الصورة، عدد المنشورات)
+
+// عناوين البريد الإلكتروني للمسؤولين المحددين
+// هؤلاء المستخدمون سيحصلون على صلاحيات خاصة في التطبيق.
+const ADMIN_EMAILS = ["sesef42331@gmail.com", "sese42331@gmail.com"]; // استبدل هذه الإيميلات بإيميلات المسؤولين الفعليين لديك
+
+let isLoginMode = true; // لتتبع ما إذا كنا في وضع تسجيل الدخول أو إنشاء حساب
+
+/**
+ * تحديث واجهة المستخدم بناءً على حالة مصادقة المستخدم.
+ * هذه الوظيفة تُستدعى كلما تغيرت حالة المصادقة (تسجيل الدخول، تسجيل الخروج).
+ * @param {firebase.User} user - كائن المستخدم الحالي من Firebase Authentication، أو null إذا لم يكن هناك مستخدم مسجل الدخول.
+ */
+async function updateAuthUI(user) {
+    if (user) {
+        // المستخدم مسجل الدخول
+        currentUser = user; // تعيين المستخدم الحالي
+
+        try {
+            // محاولة جلب ملف تعريف المستخدم من Firestore
+            const profileDoc = await getUserProfile(user.uid);
+
+            if (profileDoc.exists) {
+                // إذا كان ملف التعريف موجودًا، قم بتحميل بياناته
+                currentUserProfileData = profileDoc.data();
+            } else {
+                // إذا لم يتم العثور على ملف تعريف (قد يحدث لمستخدمين جدد أو تم إنشاؤهم خارج التطبيق)،
+                // قم بإنشاء ملف تعريف جديد للمستخدم.
+                // يتم تمرير اسم المستخدم الافتراضي كـ جزء من البريد الإلكتروني قبل @
+                await createUserProfile(user.uid, user.email, user.email.split('@')[0]);
+                const newProfileDoc = await getUserProfile(user.uid); // جلب الملف الجديد
+                currentUserProfileData = newProfileDoc.data();
+            }
+
+            // تحديث حالة المستخدم إلى "متصل" في Firestore
+            await updateUserStatus(user.uid, true);
+
+            // إظهار التطبيق الرئيسي وإخفاء شاشة المصادقة
+            authScreen.classList.remove('active');
+            mainApp.classList.add('active');
+
+            // تحميل بيانات الواجهة الرئيسية بعد تسجيل الدخول بنجاح
+            // هذه الدوال يتم تعريفها في app.js وتستخدم البيانات من firestore.js
+            loadUserProfile(user.uid); // تحميل وعرض بيانات الملف الشخصي
+            loadPosts();              // تحميل وعرض المنشورات
+            loadChats();              // تحميل وعرض المحادثات
+            loadOnlineUsers();        // تحميل وعرض المستخدمين المتصلين
+
+            // إضافة معالج لحدث إغلاق النافذة أو علامة التبويب لتحديث حالة المستخدم إلى "غير متصل"
+            window.removeEventListener('beforeunload', handleBeforeUnload); // إزالة المستمع القديم إن وجد
+            window.addEventListener('beforeunload', handleBeforeUnload);
+
+        } catch (error) {
+            // في حالة حدوث خطأ أثناء تحميل ملف تعريف المستخدم أو تحديث الحالة،
+            // قم بتسجيل الخروج لمنع مشاكل في الواجهة ولإجبار المستخدم على المحاولة مرة أخرى.
+            console.error("Error loading user profile or updating status:", error);
+            await auth.signOut(); // تسجيل الخروج
+            // لا نستخدم alert() هنا لأننا في سياق تحديث UI تلقائي
+        }
+
+    } else {
+        // المستخدم غير مسجل الدخول (أو قام بتسجيل الخروج)
+        // إذا كان هناك مستخدم سابق قام بتسجيل الخروج، قم بتحديث حالته إلى "غير متصل"
+        if (currentUser && currentUser.uid) {
+            await updateUserStatus(currentUser.uid, false);
+        }
+        currentUser = null;
+        currentUserProfileData = null; // مسح بيانات الملف الشخصي المحلية
+
+        // إظهار شاشة المصادقة وإخفاء التطبيق الرئيسي
+        authScreen.classList.add('active');
+        mainApp.classList.remove('active');
+    }
+    // إخفاء شاشة التحميل بمجرد تحديد حالة المصادقة الأولية
+    loadingScreen.classList.remove('active');
+}
+
+/**
+ * دالة معالج حدث 'beforeunload' لتحديث حالة المستخدم إلى غير متصل.
+ * يتم فصلها كدالة منفصلة لسهولة الإزالة والإضافة.
+ */
+async function handleBeforeUnload() {
+    if (currentUser) {
+        await updateUserStatus(currentUser.uid, false);
+    }
+}
+
+// مراقبة حالة المصادقة في Firebase
+// يتم استدعاء دالة updateAuthUI() كلما تغيرت حالة المصادقة
+auth.onAuthStateChanged(updateAuthUI);
+
+/**
+ * معالج لعملية تسجيل الدخول/إنشاء الحساب.
+ * يتم تحديد العملية بناءً على قيمة isLoginMode.
+ */
+authSubmitBtn.addEventListener('click', async (e) => {
+    e.preventDefault(); // منع السلوك الافتراضي للزر (إرسال النموذج)
+    const email = authEmail.value.trim();
+    const password = authPassword.value.trim();
+    authError.textContent = ''; // مسح رسائل الخطأ السابقة
+
+    // التحقق من صحة المدخلات الأساسية
+    if (!email || !password) {
+        authError.textContent = 'الرجاء إدخال البريد الإلكتروني وكلمة المرور.';
+        return;
+    }
+    if (password.length < 6) {
+        authError.textContent = 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.';
+        return;
+    }
+
+    authSubmitBtn.disabled = true; // تعطيل الزر لمنع النقر المتعدد
+    const originalBtnText = authSubmitBtn.textContent;
+    authSubmitBtn.textContent = isLoginMode ? 'جاري تسجيل الدخول...' : 'جاري إنشاء الحساب...';
+
+    try {
+        if (isLoginMode) {
+            // محاولة تسجيل الدخول
+            await auth.signInWithEmailAndPassword(email, password);
+        } else {
+            // محاولة إنشاء حساب جديد
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const userId = userCredential.user.uid;
+            // عند إنشاء حساب جديد، قم بإنشاء ملف تعريفه في Firestore تلقائيًا
+            await createUserProfile(userId, email, email.split('@')[0]);
+            alert("تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.");
+            // بعد إنشاء الحساب، التبديل إلى وضع تسجيل الدخول
+            toggleAuthForm(true);
+        }
+    } catch (error) {
+        // معالجة الأخطاء
+        let errorMessage = 'حدث خطأ: ';
+        if (error.code === 'auth/user-not-found') {
+            errorMessage += 'المستخدم غير موجود.';
+        } else if (error.code === 'auth/wrong-password') {
+            errorMessage += 'كلمة المرور خاطئة.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage += 'صيغة البريد الإلكتروني غير صحيحة.';
+        } else if (error.code === 'auth/email-already-in-use') {
+            errorMessage += 'هذا البريد الإلكتروني مستخدم بالفعل.';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage += 'كلمة المرور ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).';
+        } else {
+            errorMessage += error.message;
+        }
+        authError.textContent = errorMessage;
+        console.error("Authentication Error:", error);
+    } finally {
+        authSubmitBtn.disabled = false; // إعادة تفعيل الزر
+        authSubmitBtn.textContent = originalBtnText; // استعادة النص الأصلي
+    }
+});
+
+/**
+ * التبديل بين وضع تسجيل الدخول ووضع إنشاء الحساب.
+ * @param {boolean} [setToLogin=null] - إذا كان true، يتم التبديل لوضع تسجيل الدخول.
+ * إذا كان false، يتم التبديل لوضع إنشاء الحساب.
+ * إذا كان null، يتم التبديل بين الوضعين.
+ */
+toggleAuthMode.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleAuthForm();
+});
+
+function toggleAuthForm(setToLogin = null) {
+    if (setToLogin !== null) {
+        isLoginMode = setToLogin;
+    } else {
+        isLoginMode = !isLoginMode;
+    }
+
+    if (isLoginMode) {
+        authSubmitBtn.textContent = 'تسجيل الدخول';
+        toggleAuthMode.textContent = 'ليس لديك حساب؟ قم بإنشاء حساب جديد';
+    } else {
+        authSubmitBtn.textContent = 'إنشاء حساب جديد';
+        toggleAuthMode.textContent = 'لديك حساب بالفعل؟ تسجيل الدخول';
+    }
+    authError.textContent = ''; // مسح أي رسائل خطأ عند التبديل
+}
+
+// تهيئة الوضع الافتراضي عند التحميل
+document.addEventListener('DOMContentLoaded', () => {
+    toggleAuthForm(true); // البدء بوضع تسجيل الدخول
+});
+
+
+/**
+ * معالج لعملية تسجيل الخروج.
+ */
+logoutBtn.addEventListener('click', async () => {
+    try {
+        // تحديث حالة المستخدم إلى "غير متصل" في Firestore قبل تسجيل الخروج
+        if (currentUser) {
+            await updateUserStatus(currentUser.uid, false);
+        }
+        await auth.signOut(); // تسجيل الخروج من Firebase
+        alert("تم تسجيل الخروج بنجاح.");
+    } catch (error) {
+        console.error("Logout Error:", error);
+        alert("فشل تسجيل الخروج: " + error.message);
+    }
+});
+
+/**
+ * دالة مساعدة للتحقق مما إذا كان المستخدم الحالي مسؤولاً.
+ * @returns {boolean} - True إذا كان المستخدم مسؤولاً، False بخلاف ذلك.
+ */
+function isAdminUser() {
+    return currentUser && ADMIN_EMAILS.includes(currentUser.email);
+}
+
+
+
+
+
+// public/firebase-config.js
+
+// إعدادات Firebase الأساسية لمشروعك
+// هذه الإعدادات ضرورية لتهيئة اتصال تطبيقك بـ Firebase.
+// تم استخدام الروابط التي زودتني بها لضمان دقة الاتصال.
+const initialFirebaseConfig = {
+    apiKey: "AIzaSyAguAvkgdnbtkIsdBjR0Av0ikUOCbqc8lI",
+    authDomain: "chat-ttt-2023e.firebaseapp.com",
+    databaseURL: "https://chat-ttt-2023e-default-rtdb.firebaseio.com",
+    projectId: "chat-ttt-2023e",
+    storageBucket: "chat-ttt-2023e.firebasestorage.app", // تم تحديث هذا بناءً على طلبك الأخير
+    messagingSenderId: "89047633906",
+    appId: "1:89047633906:web:1358af9c956746a120e56b"
+};
+
+// متغير قابل للتعديل سيحتوي على إعدادات Firebase النشطة
+let firebaseConfig = { ...initialFirebaseConfig };
+
+// محاولة تحميل إعدادات Firebase من التخزين المحلي (Local Storage)
+// هذا يسمح للمسؤولين بتعديل الإعدادات من واجهة المستخدم وحفظها.
+try {
+    const storedConfig = localStorage.getItem('firebaseAppConfig');
+    if (storedConfig) {
+        const parsedConfig = JSON.parse(storedConfig);
+        // التحقق من أن الإعدادات المخزنة صالحة وتحتوي على مفتاح API على الأقل
+        if (parsedConfig && typeof parsedConfig === 'object' && parsedConfig.apiKey) {
+            firebaseConfig = parsedConfig;
+        }
+    }
+} catch (e) {
+    // في حالة حدوث خطأ أثناء قراءة التخزين المحلي، سيتم استخدام الإعدادات الافتراضية
+    console.error("Error loading Firebase config from Local Storage:", e);
+}
+
+// تعريف متغيرات عامة لخدمات Firebase ليتم الوصول إليها من الملفات الأخرى
+let app;
+let auth;
+let db;
+
+/**
+ * تهيئة تطبيق Firebase.
+ * تضمن هذه الدالة أن Firebase يتم تهيئته مرة واحدة فقط،
+ * وتقوم بتعيين متغيرات auth و db للوصول السهل.
+ */
+function initializeFirebaseApp() {
+    // إذا لم يكن هناك أي تطبيق Firebase مهيأ بالفعل، قم بتهيئته
+    if (firebase.apps.length === 0) {
+        app = firebase.initializeApp(firebaseConfig);
+    } else {
+        // إذا كان هناك تطبيق مهيأ بالفعل، استخدمه بدلاً من التهيئة مرة أخرى
+        app = firebase.app();
+    }
+    
+    // الحصول على مثيلات خدمات المصادقة و Firestore
+    auth = firebase.auth(app); // استخدام app لضمان الارتباط بالتطبيق الصحيح
+    db = firebase.firestore(app); // استخدام app لضمان الارتباط بالتطبيق الصحيح
+
+    // تمكين استمرارية Firestore في وضع عدم الاتصال (Offline Persistence)
+    // هذا يساعد على عمل التطبيق حتى بدون اتصال بالإنترنت (للقراءات المخزنة مؤقتًا).
+    db.enablePersistence()
+      .catch((err) => {
+          // يتم تسجيل تحذير إذا لم يتمكن من تمكين الاستمرارية
+          // (على سبيل المثال، بسبب وجود علامات تبويب متعددة مفتوحة)
+          console.warn('Firestore persistence not enabled: ', err);
+      });
+}
+
+// استدعاء دالة التهيئة عند تحميل السكريبت
+initializeFirebaseApp();
+
+/**
+ * تحديث إعدادات Firebase وحفظها في التخزين المحلي.
+ * @param {object} newConfig - كائن يحتوي على إعدادات Firebase الجديدة.
+ * @returns {boolean} - True إذا تم الحفظ بنجاح، False بخلاف ذلك.
+ */
+function updateFirebaseConfig(newConfig) {
+    // قائمة بالمفاتيح المطلوبة التي يجب أن تكون موجودة وغير فارغة
+    const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId']; // تم حذف storageBucket و messagingSenderId لأنها ليست مطلوبة للحد الأدنى من التهيئة
+
+    // التحقق من وجود المفاتيح المطلوبة وعدم فراغها
+    for (const key of requiredKeys) {
+        if (!newConfig[key] || newConfig[key].trim() === '') {
+            console.error(`Missing or empty required Firebase config key: ${key}`);
+            return false;
+        }
+    }
+
+    // تحديث إعدادات Firebase النشطة
+    firebaseConfig = { ...newConfig };
+    // حفظ الإعدادات الجديدة في التخزين المحلي
+    localStorage.setItem('firebaseAppConfig', JSON.stringify(firebaseConfig));
+    console.warn("Firebase config updated. Please refresh the page for changes to take effect.");
+    return true;
+}
+
+
+
+
+// public/firestore.js
+
+// تعريف متغيرات عامة لخدمات Firebase (يتم تهيئتها في firebase-config.js)
+// يجب أن تكون هذه المتغيرات متاحة عالمياً بعد تحميل firebase-config.js
+// لتجنب أخطاء "غير معرف"
+// const auth = firebase.auth(); // هذا لم يعد ضروريا هنا، يمكن الوصول إليه عالميا
+// const db = firebase.firestore(); // هذا لم يعد ضروريا هنا، يمكن الوصول إليه عالميا
+
+// معرفات الدردشات الثابتة
+const defaultAvatarUrl = "https://via.placeholder.com/150/CCCCCC/000000?text=AV"; // Placeholder Avatar
+const PUBLIC_CHAT_ID = "general_public_chat"; // الدردشة العامة (الجميع فيها)
+const NEWS_CHANNEL_ID = "news_announcements_channel"; // قناة الأخبار (للقراءة فقط)
+const PUBLIC_GROUP_CHAT_ID = "all_users_group_chat"; // المجموعة العامة الإجبارية
+
+// --- وظائف المستخدم والملف الشخصي ---
+
+/**
+ * ينشئ ملف تعريف مستخدم جديد في Firestore.
+ * يضمن اسم مستخدم فريد ويضيف المستخدم تلقائيًا للدردشات العامة.
+ * @param {string} userId - معرف المستخدم (UID).
+ * @param {string} email - البريد الإلكتروني للمستخدم.
+ * @param {string} defaultUsername - اسم المستخدم المقترح افتراضيًا (عادة جزء من البريد الإلكتروني).
+ */
+async function createUserProfile(userId, email, defaultUsername) {
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        let username = defaultUsername;
+        let counter = 0;
+        // التأكد من أن اسم المستخدم فريد
+        while (await checkUsernameExists(username)) {
+            username = `${defaultUsername}_${++counter}`;
+        }
+
+        await userRef.set({
+            email: email,
+            username: username,
+            profilePictureUrl: defaultAvatarUrl,
+            postsCount: 0,
+            // المعارف (Acquaintances) - يتم تخزينها كخريطة لسهولة إضافة/إزالة والتحقق من العلاقة المتبادلة
+            acquaintances: {}, 
+            isProfilePrivate: false, // خصوصية الملف الشخصي
+            statusMessage: 'مرحباً! أنا أستخدم تواصل.', // حالة مزاج افتراضية
+            savedPosts: {}, // المنشورات المحفوظة (كخريطة postId -> timestamp)
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            isOnline: true // تعيين المستخدم كمتصل عند الإنشاء
+        });
+
+        // إضافة المستخدم تلقائياً للدردشات العامة الإجبارية
+        await addParticipantToChat(PUBLIC_CHAT_ID, userId, username);
+        await addParticipantToChat(NEWS_CHANNEL_ID, userId, username);
+        await addParticipantToChat(PUBLIC_GROUP_CHAT_ID, userId, username);
+
+        console.log(`User profile for ${username} created and added to public chats.`);
+    } else {
+        console.log("User profile already exists. Updating status and ensuring public chat membership.");
+        // إذا كان الملف موجودًا بالفعل، قم فقط بتحديث الحالة وتأكد من عضويته في الدردشات العامة
+        await updateUserStatus(userId, true);
+        const existingUserData = userDoc.data();
+        await addParticipantToChat(PUBLIC_CHAT_ID, userId, existingUserData.username || email.split('@')[0]);
+        await addParticipantToChat(NEWS_CHANNEL_ID, userId, existingUserData.username || email.split('@')[0]);
+        await addParticipantToChat(PUBLIC_GROUP_CHAT_ID, userId, existingUserData.username || email.split('@')[0]);
+    }
+}
+
+/**
+ * يتحقق مما إذا كان اسم المستخدم موجودًا بالفعل في Firestore.
+ * @param {string} username - اسم المستخدم للتحقق.
+ * @returns {Promise<boolean>} - True إذا كان اسم المستخدم موجودًا، False بخلاف ذلك.
+ */
+async function checkUsernameExists(username) {
+    const snapshot = await db.collection('users')
+        .where('username', '==', username)
+        .limit(1)
+        .get();
+    return !snapshot.empty;
+}
+
+/**
+ * يحدّث حالة الاتصال وآخر ظهور للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {boolean} isOnline - True إذا كان متصلاً، False إذا كان غير متصل.
+ */
+async function updateUserStatus(userId, isOnline) {
+    try {
+        const userRef = db.collection('users').doc(userId);
+        await userRef.update({
+            isOnline: isOnline,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error updating user status:", error);
+    }
+}
+
+/**
+ * يستمع لتغييرات حالة الاتصال لمستخدم معين في الوقت الفعلي.
+ * @param {string} userId - معرف المستخدم المراد الاستماع لحالته.
+ * @param {function} callback - دالة يتم استدعاؤها مع بيانات المستخدم (isOnline, lastSeen).
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function listenToUserStatus(userId, callback) {
+    return db.collection('users').doc(userId).onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            callback({
+                isOnline: data.isOnline,
+                lastSeen: data.lastSeen
+            });
+        }
+    });
+}
+
+/**
+ * يجلب ملف تعريف مستخدم واحد.
+ * @param {string} userId - معرف المستخدم.
+ * @returns {Promise<DocumentSnapshot>} - وعد بكائن DocumentSnapshot.
+ */
+function getUserProfile(userId) {
+    return db.collection('users').doc(userId).get();
+}
+
+/**
+ * يجلب ملفات تعريف لعدة مستخدمين.
+ * يستخدم لتقسيم الاستعلامات إلى دفعات (chunks) لتجاوز حد 10 في استعلامات 'in'.
+ * @param {string[]} userIds - مصفوفة من معرفات المستخدمين.
+ * @returns {Promise<Object[]>} - وعد بمصفوفة من كائنات بيانات المستخدم.
+ */
+async function getUsersProfiles(userIds) {
+    if (userIds.length === 0) return [];
+
+    const chunks = [];
+    for (let i = 0; i < userIds.length; i += 10) {
+        chunks.push(userIds.slice(i, i + 10));
+    }
+
+    let allUsers = [];
+    for (const chunk of chunks) {
+        const snapshots = await db.collection('users').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+        snapshots.forEach(doc => allUsers.push({ id: doc.id, ...doc.data() }));
+    }
+    return allUsers;
+}
+
+/**
+ * يحدّث اسم المستخدم مع التحقق من التفرد.
+ * @param {string} userId - معرف المستخدم.
+ * @param {string} newUsername - اسم المستخدم الجديد.
+ * @returns {Promise<boolean>} - True إذا نجح التحديث.
+ */
+async function updateUsername(userId, newUsername) {
+    const userRef = db.collection('users').doc(userId);
+    // التحقق من أن اسم المستخدم فريد (باستثناء المستخدم نفسه)
+    const existingUsers = await db.collection('users').where('username', '==', newUsername).get();
+    if (!existingUsers.empty && existingUsers.docs[0].id !== userId) {
+        throw new Error("اسم المستخدم هذا محجوز بالفعل. الرجاء اختيار اسم آخر.");
+    }
+
+    try {
+        await userRef.update({ username: newUsername });
+        console.log("Username updated successfully.");
+        return true;
+    } catch (error) {
+        console.error("Error updating username:", error);
+        throw new Error("فشل تحديث اسم المستخدم. حاول مرة أخرى.");
+    }
+}
+
+/**
+ * يحدّث صورة الملف الشخصي للمستخدم.
+ * (ملاحظة: هذه الدالة تقوم فقط بتحديث الرابط في Firestore.
+ * الرفع الفعلي للصورة يتطلب خدمة تخزين مثل Firebase Storage أو خدمة خارجية.)
+ * @param {string} userId - معرف المستخدم.
+ * @param {string} newPictureUrl - رابط الصورة الجديد.
+ * @returns {Promise<boolean>} - True إذا نجح التحديث.
+ */
+async function updateProfilePicture(userId, newPictureUrl) {
+    const userRef = db.collection('users').doc(userId);
+    try {
+        await userRef.update({ profilePictureUrl: newPictureUrl });
+        console.log("Profile picture updated successfully.");
+        return true;
+    } catch (error) {
+        console.error("Error updating profile picture:", error);
+        throw new Error("فشل تحديث صورة الملف الشخصي.");
+    }
+}
+
+/**
+ * يحدّث حالة المزاج (Status Message) للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {string} newStatusMessage - حالة المزاج الجديدة.
+ * @returns {Promise<boolean>} - True إذا نجح التحديث.
+ */
+async function updateStatusMessage(userId, newStatusMessage) {
+    const userRef = db.collection('users').doc(userId);
+    try {
+        await userRef.update({ statusMessage: newStatusMessage });
+        console.log("Status message updated successfully.");
+        return true;
+    } catch (error) {
+        console.error("Error updating status message:", error);
+        throw new Error("فشل تحديث حالة المزاج.");
+    }
+}
+
+/**
+ * يبحث عن مستخدمين بناءً على اسم المستخدم (البريد الإلكتروني مخفي).
+ * @param {string} searchTerm - مصطلح البحث.
+ * @returns {Promise<Object[]>} - وعد بمصفوفة من كائنات بيانات المستخدم (فقط ID, username, profilePictureUrl).
+ */
+async function searchUsers(searchTerm) {
+    const results = [];
+    const lowerCaseSearchTerm = searchTerm.toLowerCase(); // لضمان بحث غير حساس لحالة الأحرف
+
+    // البحث عن طريق اسم المستخدم (بداية الاسم)
+    const usernameQuery = await db.collection('users')
+        .where('username', '>=', lowerCaseSearchTerm)
+        .where('username', '<=', lowerCaseSearchTerm + '\uf8ff')
+        .limit(10).get(); // حد لنتائج البحث
+
+    usernameQuery.forEach(doc => {
+        const data = doc.data();
+        // إخفاء البريد الإلكتروني عند الإرجاع
+        results.push({ id: doc.id, username: data.username, profilePictureUrl: data.profilePictureUrl });
+    });
+    return results;
+}
+
+/**
+ * يجلب قائمة المستخدمين المتصلين حاليا.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة من كائنات المستخدمين المتصلين.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getOnlineUsers(callback) {
+    return db.collection('users').where('isOnline', '==', true).onSnapshot(snapshot => {
+        const onlineUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(onlineUsers);
+    }, error => {
+        console.error("Error getting online users:", error);
+    });
+}
+
+// --- وظائف المنشورات ---
+
+/**
+ * ينشئ منشوراً جديداً.
+ * @param {string} content - محتوى المنشور.
+ * @param {boolean} isPrivate - هل المنشور خاص (للمعارف فقط)؟
+ * @returns {Promise<void>}
+ */
+async function createPost(content, isPrivate = false) {
+    if (!auth.currentUser) {
+        throw new Error("يجب تسجيل الدخول لنشر منشور.");
+    }
+    const user = auth.currentUser;
+    const userProfileDoc = await db.collection('users').doc(user.uid).get();
+    if (!userProfileDoc.exists) {
+        throw new Error("ملف تعريف المستخدم غير موجود.");
+    }
+    const userData = userProfileDoc.data();
+
+    await db.collection('posts').add({
+        userId: user.uid,
+        username: userData.username || user.email.split('@')[0],
+        userProfilePic: userData.profilePictureUrl || defaultAvatarUrl,
+        content: content,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        // التفاعلات: عدادات لكل نوع من الإيموجي
+        reactions: {
+            heart: 0, // ❤
+            tears: 0, // 😫
+            clown: 0, // 🤡
+            thumbsUp: 0, // 👍
+            thumbsDown: 0 // 👎
+        },
+        // userReactions: لتتبع التفاعل الوحيد لكل مستخدم (مثلاً: { userId: 'heart' })
+        userReactions: {},
+        commentsCount: 0,
+        isPrivate: isPrivate // حالة خصوصية المنشور
+    });
+
+    // تحديث عدد المنشورات للمستخدم
+    await db.collection('users').doc(user.uid).update({
+        postsCount: firebase.firestore.FieldValue.increment(1)
+    });
+}
+
+/**
+ * يحدّث محتوى منشور موجود.
+ * @param {string} postId - معرف المنشور.
+ * @param {string} newContent - المحتوى الجديد للمنشور.
+ * @param {string} userId - معرف المستخدم الذي يقوم بالتعديل (للتأكد من الصلاحية).
+ * @returns {Promise<void>}
+ */
+async function updatePost(postId, newContent, userId) {
+    const postRef = db.collection('posts').doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+        throw new Error("المنشور غير موجود.");
+    }
+    if (postDoc.data().userId !== userId) {
+        throw new Error("ليس لديك صلاحية لتعديل هذا المنشور.");
+    }
+
+    await postRef.update({
+        content: newContent,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp() // وقت التعديل
+    });
+}
+
+/**
+ * يحذف منشوراً.
+ * @param {string} postId - معرف المنشور.
+ * @param {string} userId - معرف المستخدم الذي يقوم بالحذف (للتأكد من الصلاحية).
+ * @returns {Promise<void>}
+ */
+async function deletePost(postId, userId) {
+    const postRef = db.collection('posts').doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+        throw new Error("المنشور غير موجود.");
+    }
+    if (postDoc.data().userId !== userId) {
+        throw new Error("ليس لديك صلاحية لحذف هذا المنشور.");
+    }
+
+    // حذف المنشور والتعليقات التابعة له (لا يمكن حذف المجموعات الفرعية مباشرة في Firestore)
+    // ملاحظة: لحذف المجموعات الفرعية فعليًا (التعليقات)، ستحتاج إلى دالة Cloud Function أو تنفيذ جانبي للخادم
+    // هذا الكود يحذف فقط وثيقة المنشور الرئيسية.
+
+    // يمكن إضافة وعد (Promise.all) لحذف التعليقات أولاً إذا أردت التعامل معها من جانب العميل
+    const commentsSnapshot = await postRef.collection('comments').get();
+    const batch = db.batch();
+    commentsSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    batch.delete(postRef); // حذف المنشور نفسه بعد حذف تعليقاته
+
+    await batch.commit();
+
+    // تحديث عدد المنشورات للمستخدم
+    await db.collection('users').doc(userId).update({
+        postsCount: firebase.firestore.FieldValue.increment(-1)
+    });
+}
+
+/**
+ * يستمع للمنشورات ويستدعي دالة رد الاتصال عند التغيير.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة المنشورات.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getPosts(callback) {
+    return db.collection('posts')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(snapshot => {
+            const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            callback(posts);
+        }, error => {
+            console.error("Error getting posts:", error);
+            // لا نستخدم alert() هنا. يجب أن يتعامل app.js مع الأخطاء.
+        });
+}
+
+/**
+ * يضيف أو يزيل تفاعلاً (reaction) إلى منشور.
+ * يمكن للمستخدم أن يكون لديه تفاعل واحد فقط لكل منشور.
+ * النقر على نفس التفاعل يزيله، والنقر على تفاعل مختلف يحل محله.
+ * @param {string} postId - معرف المنشور.
+ * @param {string} userId - معرف المستخدم الذي يقوم بالتفاعل.
+ * @param {string} newReactionType - نوع التفاعل الجديد (مثلاً: 'heart', 'thumbsUp').
+ * @returns {Promise<void>}
+ */
+async function addReaction(postId, userId, newReactionType) {
+    const postRef = db.collection('posts').doc(postId);
+
+    await db.runTransaction(async (transaction) => {
+        const postDoc = await transaction.get(postRef);
+        if (!postDoc.exists) {
+            throw new Error("المنشور غير موجود.");
+        }
+
+        const postData = postDoc.data();
+        const currentReactions = postData.reactions || {}; // عدادات لكل نوع تفاعل
+        const userReactions = postData.userReactions || {}; // التفاعل الذي اختاره كل مستخدم
+
+        const existingUserReaction = userReactions[userId];
+
+        // إذا كان المستخدم قد تفاعل بالفعل
+        if (existingUserReaction) {
+            // قم بتقليل عداد التفاعل القديم
+            if (currentReactions[existingUserReaction] > 0) {
+                currentReactions[existingUserReaction]--;
+            }
+            // إزالة التفاعل السابق للمستخدم
+            delete userReactions[userId];
+        }
+
+        // إذا كان التفاعل الجديد مختلفًا عن التفاعل القديم (أو لا يوجد تفاعل قديم)
+        if (newReactionType && existingUserReaction !== newReactionType) {
+            // زيادة عداد التفاعل الجديد
+            if (currentReactions[newReactionType] === undefined) {
+                currentReactions[newReactionType] = 0; // تهيئة إذا كان نوع التفاعل جديداً
+            }
+            currentReactions[newReactionType]++;
+            // تعيين التفاعل الجديد للمستخدم
+            userReactions[userId] = newReactionType;
+        }
+
+        // تحديث المنشور في قاعدة البيانات
+        transaction.update(postRef, {
+            reactions: currentReactions,
+            userReactions: userReactions
+        });
+    });
+}
+
+/**
+ * يضيف تعليقاً إلى منشور.
+ * @param {string} postId - معرف المنشور.
+ * @param {string} userId - معرف المستخدم المعلق.
+ * @param {string} username - اسم المستخدم المعلق.
+ * @param {string} userProfilePic - رابط صورة الملف الشخصي للمعلق.
+ * @param {string} commentContent - محتوى التعليق.
+ * @returns {Promise<void>}
+ */
+async function addComment(postId, userId, username, userProfilePic, commentContent) {
+    const commentsCollectionRef = db.collection('posts').doc(postId).collection('comments');
+    await commentsCollectionRef.add({
+        userId: userId,
+        username: username,
+        userProfilePic: userProfilePic,
+        content: commentContent,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // تحديث عدد التعليقات في وثيقة المنشور الرئيسية
+    await db.collection('posts').doc(postId).update({
+        commentsCount: firebase.firestore.FieldValue.increment(1)
+    });
+}
+
+/**
+ * يستمع للتعليقات على منشور معين في الوقت الفعلي.
+ * @param {string} postId - معرف المنشور.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة من التعليقات.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getComments(postId, callback) {
+    const commentsCollectionRef = db.collection('posts').doc(postId).collection('comments');
+    return commentsCollectionRef.orderBy('timestamp', 'asc').onSnapshot(snapshot => {
+        const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(comments);
+    }, error => {
+        console.error("Error getting comments:", error);
+    });
+}
+
+/**
+ * حفظ منشور للمستخدم.
+ * يتم تخزين المنشور المحفوظ كخريطة في ملف تعريف المستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {string} postId - معرف المنشور المراد حفظه.
+ * @returns {Promise<void>}
+ */
+async function savePost(userId, postId) {
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update({
+        [`savedPosts.${postId}`]: firebase.firestore.FieldValue.serverTimestamp() // قيمة timestamp للترتيب
+    });
+}
+
+/**
+ * إزالة حفظ منشور للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {string} postId - معرف المنشور المراد إزالة حفظه.
+ * @returns {Promise<void>}
+ */
+async function unsavePost(userId, postId) {
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update({
+        [`savedPosts.${postId}`]: firebase.firestore.FieldValue.delete()
+    });
+}
+
+/**
+ * يستمع للمنشورات المحفوظة الخاصة بالمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة من المنشورات المحفوظة.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getSavedPosts(userId, callback) {
+    // يجب أولاً جلب قائمة savedPosts IDs من ملف تعريف المستخدم
+    return db.collection('users').doc(userId).onSnapshot(async userDoc => {
+        if (userDoc.exists) {
+            const savedPostsMap = userDoc.data().savedPosts || {};
+            const savedPostIds = Object.keys(savedPostsMap);
+
+            if (savedPostIds.length === 0) {
+                callback([]);
+                return;
+            }
+
+            // جلب تفاصيل المنشورات المحفوظة
+            const chunks = [];
+            for (let i = 0; i < savedPostIds.length; i += 10) {
+                chunks.push(savedPostIds.slice(i, i + 10));
+            }
+
+            let allSavedPosts = [];
+            for (const chunk of chunks) {
+                const snapshots = await db.collection('posts').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+                snapshots.forEach(doc => allSavedPosts.push({ id: doc.id, ...doc.data() }));
+            }
+            // فرز المنشورات المحفوظة حسب تاريخ الحفظ (من الخريطة)
+            allSavedPosts.sort((a, b) => (savedPostsMap[b.id]?.toDate()?.getTime() || 0) - (savedPostsMap[a.id]?.toDate()?.getTime() || 0));
+            callback(allSavedPosts);
+        } else {
+            callback([]);
+        }
+    }, error => {
+        console.error("Error getting saved posts:", error);
+    });
+}
+
+// --- وظائف المعارف (Acquaintances) ---
+
+const MAX_ACQUAINTANCES = 300; // الحد الأقصى لعدد المعارف
+
+/**
+ * يرسل طلب إضافة معرف (أو يقبل طلب موجود ليصبحا معرفين متبادلين).
+ * ملاحظة: هذا التنفيذ يجعل العلاقة متبادلة فورًا. لنظام طلبات حقيقي (معلق/مقبول)،
+ * ستحتاج إلى مجموعة فرعية لـ 'acquaintanceRequests' لكل مستخدم.
+ * @param {string} currentUserId - معرف المستخدم الذي يبدأ الإضافة.
+ * @param {string} targetUserId - معرف المستخدم المراد إضافته كمعرف.
+ * @returns {Promise<void>}
+ */
+async function sendAcquaintanceRequest(currentUserId, targetUserId) {
+    if (currentUserId === targetUserId) {
+        throw new Error("لا يمكنك إضافة نفسك كمعرف.");
+    }
+
+    const currentUserRef = db.collection('users').doc(currentUserId);
+    const targetUserRef = db.collection('users').doc(targetUserId);
+
+    const [currentUserDoc, targetUserDoc] = await Promise.all([
+        currentUserRef.get(),
+        targetUserRef.get()
+    ]);
+
+    if (!currentUserDoc.exists || !targetUserDoc.exists) {
+        throw new Error("أحد المستخدمين غير موجود.");
+    }
+
+    const currentAcquaintances = currentUserDoc.data().acquaintances || {};
+    const targetAcquaintances = targetUserDoc.data().acquaintances || {};
+
+    if (Object.keys(currentAcquaintances).length >= MAX_ACQUAINTANCES) {
+        throw new Error(`لقد وصلت إلى الحد الأقصى للمعارف (${MAX_ACQUAINTANCES}).`);
+    }
+    if (Object.keys(targetAcquaintances).length >= MAX_ACQUAINTANCES) {
+        throw new Error(`المستخدم ${targetUserDoc.data().username} وصل إلى الحد الأقصى للمعارف.`);
+    }
+
+    // التحقق مما إذا كانا معارف بالفعل
+    if (currentAcquaintances[targetUserId] || targetAcquaintances[currentUserId]) {
+        throw new Error("أنتم معارف بالفعل.");
+    }
+
+    // تنفيذ الإضافة المتبادلة في دفعة واحدة (Batch)
+    const batch = db.batch();
+
+    batch.update(currentUserRef, {
+        [`acquaintances.${targetUserId}`]: { addedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        acquaintancesCount: firebase.firestore.FieldValue.increment(1)
+    });
+    batch.update(targetUserRef, {
+        [`acquaintances.${currentUserId}`]: { addedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        acquaintancesCount: firebase.firestore.FieldValue.increment(1)
+    });
+
+    await batch.commit();
+    console.log(`User ${currentUserId} and ${targetUserId} are now acquaintances.`);
+}
+
+/**
+ * يزيل معرفاً من قائمة المعارف المتبادلة.
+ * @param {string} userId - معرف المستخدم الذي يقوم بالإزالة.
+ * @param {string} acquaintanceId - معرف المعرف المراد إزالته.
+ * @returns {Promise<void>}
+ */
+async function removeAcquaintance(userId, acquaintanceId) {
+    const userRef = db.collection('users').doc(userId);
+    const acquaintanceRef = db.collection('users').doc(acquaintanceId);
+
+    const batch = db.batch();
+
+    // إزالة المعرف من قائمة المستخدم الأول
+    batch.update(userRef, {
+        [`acquaintances.${acquaintanceId}`]: firebase.firestore.FieldValue.delete(),
+        acquaintancesCount: firebase.firestore.FieldValue.increment(-1)
+    });
+    // إزالة المستخدم الأول من قائمة المعارف للمستخدم الثاني
+    batch.update(acquaintanceRef, {
+        [`acquaintances.${userId}`]: firebase.firestore.FieldValue.delete(),
+        acquaintancesCount: firebase.firestore.FieldValue.increment(-1)
+    });
+
+    await batch.commit();
+    console.log(`Acquaintance ${acquaintanceId} removed from ${userId}.`);
+}
+
+/**
+ * يستمع لقائمة المعارف الخاصة بالمستخدم في الوقت الفعلي.
+ * @param {string} userId - معرف المستخدم.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة من كائنات المعارف.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getAcquaintances(userId, callback) {
+    return db.collection('users').doc(userId).onSnapshot(async userDoc => {
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            const acquaintanceIds = Object.keys(userData.acquaintances || {});
+            
+            if (acquaintanceIds.length === 0) {
+                callback([]);
+                return;
+            }
+
+            const acquaintances = await getUsersProfiles(acquaintanceIds);
+            callback(acquaintances);
+        } else {
+            callback([]);
+        }
+    }, error => {
+        console.error("Error getting acquaintances:", error);
+    });
+}
+
+/**
+ * تبديل خصوصية الملف الشخصي للمستخدم.
+ * @param {string} userId - معرف المستخدم.
+ * @param {boolean} isPrivate - القيمة الجديدة لخصوصية الملف (true للقفل، false لفتح القفل).
+ * @returns {Promise<void>}
+ */
+async function toggleProfilePrivacy(userId, isPrivate) {
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update({ isProfilePrivate: isPrivate });
+}
+
+
+// --- وظائف الدردشات والمراسلة ---
+
+/**
+ * يضيف مشاركًا إلى دردشة معينة.
+ * يتم استخدامه بشكل خاص لإضافة المستخدمين الجدد إلى الدردشات العامة تلقائياً.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string} userId - معرف المستخدم المراد إضافته.
+ * @param {string} username - اسم المستخدم المراد إضافته.
+ */
+async function addParticipantToChat(chatId, userId, username) {
+    const chatRef = db.collection('chats').doc(chatId);
+    try {
+        await chatRef.update({
+            [`participants.${userId}`]: { username: username, joinedAt: firebase.firestore.FieldValue.serverTimestamp() }
+        });
+    } catch (error) {
+        // إذا لم يتم العثور على الدردشة، قم بإنشائها أولاً
+        if (error.code === 'not-found') {
+            let chatData = {
+                participants: {
+                    [userId]: { username: username, joinedAt: firebase.firestore.FieldValue.serverTimestamp() }
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: 'مرحباً بالجميع في الدردشة!',
+                lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+                isGroup: true, // الدردشات العامة هي مجموعات
+                typingStatus: {} // حقل لحالة الكتابة
+            };
+            if (chatId === PUBLIC_CHAT_ID) {
+                chatData.name = 'الدردشة العامة';
+                chatData.publicChat = true;
+            } else if (chatId === NEWS_CHANNEL_ID) {
+                chatData.name = 'قناة إعلانات الأخبار';
+                chatData.newsChannel = true;
+                chatData.readOnly = true; // قناة القراءة فقط
+            } else if (chatId === PUBLIC_GROUP_CHAT_ID) {
+                chatData.name = 'المحادثة الجماعية العامة';
+                chatData.publicGroup = true;
+            }
+            await chatRef.set(chatData);
+            console.log(`Chat ${chatId} created and user ${username} added.`);
+        } else {
+            console.error(`Error adding user to chat ${chatId}:`, error);
+            throw new Error(`فشل إضافة المستخدم للمحادثة: ${error.message}`);
+        }
+    }
+}
+
+
+/**
+ * ينشئ دردشة جديدة (فردية أو جماعية).
+ * للدردشات الفردية، يحاول العثور على دردشة موجودة بالفعل بين نفس المشاركين.
+ * @param {string[]} participantIds - مصفوفة من معرفات المستخدمين المشاركين.
+ * @param {string} [chatName=null] - اسم الدردشة (مطلوب للمجموعات).
+ * @param {boolean} [isGroup=false] - هل هي دردشة جماعية؟
+ * @returns {Promise<string>} - وعد بمعرف الدردشة الجديدة أو الموجودة.
+ */
+async function createChat(participantIds, chatName = null, isGroup = false) {
+    if (participantIds.length < 2) {
+        throw new Error("يجب أن يكون هناك مشاركان على الأقل لإنشاء دردشة.");
+    }
+
+    if (!isGroup) {
+        // للدردشات الفردية (1-to-1)، نستخدم معرف دردشة فريد يعتمد على ترتيب معرفات المستخدمين
+        const sortedParticipantIds = [...new Set(participantIds)].sort();
+        const directChatId = sortedParticipantIds.join('_'); // مثال: "user1_user2"
+
+        const chatRef = db.collection('chats').doc(directChatId);
+        const chatDoc = await chatRef.get();
+
+        if (chatDoc.exists) {
+            return directChatId; // إرجاع معرف الدردشة الموجودة
+        } else {
+            // إنشاء دردشة فردية جديدة
+            const participantsData = {};
+            const userProfiles = await getUsersProfiles(sortedParticipantIds);
+            userProfiles.forEach(user => {
+                participantsData[user.id] = { username: user.username || user.email.split('@')[0] };
+            });
+
+            await chatRef.set({
+                participants: participantsData,
+                name: null, // لا يوجد اسم للمحادثات الفردية افتراضيًا
+                isGroup: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: 'ابدأ محادثتك الأولى!',
+                lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+                publicChat: false,
+                newsChannel: false,
+                typingStatus: {}
+            });
+            console.log("New private chat created with ID:", directChatId);
+            return directChatId;
+        }
+    } else {
+        // إنشاء دردشة جماعية جديدة بمعرف تلقائي
+        if (!chatName) {
+            throw new Error("يجب توفير اسم للدردشة الجماعية.");
+        }
+        const newChatRef = db.collection('chats').doc(); // معرف تلقائي
+        const participantsData = {};
+        const userProfiles = await getUsersProfiles(participantIds);
+
+        userProfiles.forEach(user => {
+            participantsData[user.id] = { username: user.username || user.email.split('@')[0] };
+        });
+
+        await newChatRef.set({
+            participants: participantsData,
+            name: chatName,
+            isGroup: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessage: 'ابدأ محادثتك الأولى في المجموعة!',
+            lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+            publicChat: false,
+            newsChannel: false,
+            typingStatus: {}
+        });
+        console.log("New group chat created with ID:", newChatRef.id);
+        return newChatRef.id;
+    }
+}
+
+
+/**
+ * يرسل رسالة إلى دردشة معينة.
+ * يتحقق مما إذا كانت القناة للقراءة فقط للمستخدمين العاديين.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string} senderId - معرف المرسل.
+ * @param {string} senderUsername - اسم المرسل.
+ * @param {string} content - محتوى الرسالة.
+ * @returns {Promise<boolean>} - True إذا نجح الإرسال.
+ */
+async function sendMessage(chatId, senderId, senderUsername, content) {
+    const chatDoc = await db.collection('chats').doc(chatId).get();
+    if (!chatDoc.exists) {
+        throw new Error("الدردشة غير موجودة.");
+    }
+    const chatData = chatDoc.data();
+
+    // منع الإرسال إلى قنوات الأخبار إذا لم يكن المرسل مسؤولاً
+    if (chatData.newsChannel && !isAdminUser()) {
+        throw new Error("لا يمكنك إرسال رسائل إلى قناة الأخبار.");
+    }
+
+    const messagesCollectionRef = db.collection('chats').doc(chatId).collection('messages');
+    try {
+        await messagesCollectionRef.add({
+            senderId: senderId,
+            senderUsername: senderUsername,
+            content: content,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            readBy: {
+                [senderId]: true // المرسل يعتبر قد قرأ رسالته تلقائياً
+            }
+        });
+
+        // تحديث آخر رسالة وتاريخها في وثيقة الدردشة الرئيسية
+        await db.collection('chats').doc(chatId).update({
+            lastMessage: content,
+            lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error sending message:", error);
+        throw new Error("فشل إرسال الرسالة.");
+    }
+}
+
+/**
+ * يستمع للرسائل في دردشة معينة في الوقت الفعلي.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة الرسائل.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getMessages(chatId, callback) {
+    const messagesCollectionRef = db.collection('chats').doc(chatId).collection('messages');
+    return messagesCollectionRef.orderBy('timestamp', 'asc').onSnapshot(snapshot => {
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(messages);
+    }, error => {
+        console.error("Error getting messages:", error);
+        // يجب أن يتعامل app.js مع هذه الأخطاء
+    });
+}
+
+/**
+ * يقوم بتمييز الرسائل كمقروءة للمستخدم المحدد.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string[]} messageIds - مصفوفة بمعرفات الرسائل التي تم قراءتها.
+ * @param {string} userId - معرف المستخدم الذي قرأ الرسائل.
+ */
+async function markMessagesAsRead(chatId, messageIds, userId) {
+    const batch = db.batch();
+    messageIds.forEach(msgId => {
+        const messageRef = db.collection('chats').doc(chatId).collection('messages').doc(msgId);
+        batch.update(messageRef, {
+            [`readBy.${userId}`]: true
+        });
+    });
+    try {
+        await batch.commit();
+        // console.log(`Messages in chat ${chatId} marked as read by ${userId}`);
+    } catch (error) {
+        console.error("Error marking messages as read:", error);
+    }
+}
+
+/**
+ * يجلب جميع الدردشات التي يشارك فيها مستخدم معين في الوقت الفعلي.
+ * @param {string} userId - معرف المستخدم.
+ * @param {function} callback - دالة يتم استدعاؤها مع مصفوفة من الدردشات.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function getParticipatingChats(userId, callback) {
+    return db.collection('chats')
+        .where(`participants.${userId}.username`, '!=', null) // التأكد أن المستخدم مشارك
+        .orderBy('lastMessageAt', 'desc') // فرز حسب آخر رسالة
+        .onSnapshot(snapshot => {
+            const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            callback(chats);
+        }, error => {
+            console.error("Error getting participating chats:", error);
+        });
+}
+
+/**
+ * تحديث حالة الكتابة للمستخدم في دردشة معينة.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string} userId - معرف المستخدم.
+ * @param {boolean} isTyping - True إذا كان يكتب، False إذا توقف.
+ */
+async function updateTypingStatus(chatId, userId, isTyping) {
+    const chatRef = db.collection('chats').doc(chatId);
+    if (isTyping) {
+        await chatRef.update({
+            [`typingStatus.${userId}`]: true
+        });
+    } else {
+        await chatRef.update({
+            [`typingStatus.${userId}`]: firebase.firestore.FieldValue.delete()
+        });
+    }
+}
+
+/**
+ * يستمع لحالة الكتابة في دردشة معينة.
+ * @param {string} chatId - معرف الدردشة.
+ * @param {string} otherUserId - معرف المستخدم الآخر لمراقبة حالته.
+ * @param {function} callback - دالة يتم استدعاؤها مع true/false لحالة الكتابة.
+ * @returns {function} - دالة لإلغاء الاشتراك من المستمع.
+ */
+function listenToTypingStatus(chatId, otherUserId, callback) {
+    return db.collection('chats').doc(chatId).onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            const typingUsers = data.typingStatus || {};
+            const isTyping = !!typingUsers[otherUserId]; // تحقق مما إذا كان المستخدم الآخر يكتب
+            callback(isTyping);
+        }
+    });
+}
+
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تواصل - تطبيق الدردشة والتواصل</title>
+    <!-- ربط ملف الأنماط الرئيسي -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome Icons for modern UI elements (أيقونات واجهة مستخدم عصرية) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts - Cairo for Arabic text (خط القاهرة للنصوص العربية) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- شاشة التحميل الأولية (تظهر عند بدء تشغيل التطبيق) -->
+    <div id="loadingScreen" class="loading-screen active">
+        <div class="spinner"></div>
+        <p class="loading-text">جاري تحميل التطبيق، الرجاء الانتظار...</p>
+    </div>
+
+    <!-- شاشة المصادقة (تسجيل الدخول / إنشاء حساب) -->
+    <div id="authScreen" class="screen auth-screen">
+        <div class="auth-card">
+            <h2>أهلاً بك في تواصل!</h2>
+            <form id="authForm" class="auth-form">
+                <input type="email" id="authEmail" placeholder="البريد الإلكتروني" required>
+                <input type="password" id="authPassword" placeholder="كلمة المرور" required>
+                <button type="submit" id="authSubmitBtn">تسجيل الدخول</button>
+                <p class="auth-error" id="authError"></p>
+                <p class="auth-toggle-text">
+                    <a href="#" id="toggleAuthMode">ليس لديك حساب؟ قم بإنشاء حساب جديد</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- التطبيق الرئيسي بعد تسجيل الدخول -->
+    <div id="mainApp" class="screen main-app">
+        <header>
+            <div class="header-left">
+                <h1>تواصل</h1>
+            </div>
+            <nav>
+                <button id="showPostsBtn" class="nav-button active">
+                    <i class="fas fa-bullhorn"></i> المنشورات
+                </button>
+                <button id="showChatsBtn" class="nav-button">
+                    <i class="fas fa-comments"></i> الدردشات
+                </button>
+                <button id="showAcquaintancesBtn" class="nav-button">
+                    <i class="fas fa-users"></i> المعارف
+                </button>
+                <button id="showProfileBtn" class="nav-button">
+                    <i class="fas fa-user-circle"></i> الملف الشخصي
+                </button>
+            </nav>
+            <div class="header-right">
+                <button id="toggleDarkModeBtn" title="تبديل الوضع الليلي/النهاري" class="header-icon-button">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                </button>
+            </div>
+        </header>
+
+        <!-- الشريط الجانبي للمستخدمين المتصلين (يظهر على الشاشات الكبيرة) -->
+        <aside id="onlineUsersSidebar" class="online-users-sidebar">
+            <h3>
+                المتصلون الآن <span id="onlineUsersCount" class="online-count">(0)</span>
+            </h3>
+            <ul id="onlineUsersList" class="online-users-list">
+                <!-- قائمة المستخدمين المتصلين ستعرض هنا بواسطة JavaScript -->
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- قسم المنشورات -->
+            <section id="postsSection" class="section active">
+                <div class="section-header">
+                    <h2>آخر المنشورات</h2>
+                    <button id="refreshPostsBtn" class="icon-button">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                </div>
+                <div class="card post-input-area">
+                    <textarea id="postContent" placeholder="ماذا يدور في ذهنك؟"></textarea>
+                    <div class="post-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="privatePostCheckbox">
+                            <span class="checkmark"></span>
+                            منشور خاص (للمعارف فقط)
+                        </label>
+                        <button id="publishPostBtn" class="primary-button">
+                            <i class="fas fa-paper-plane"></i> نشر
+                        </button>
+                    </div>
+                </div>
+                <div id="postsList" class="posts-list">
+                    <!-- المنشورات ستعرض هنا بواسطة JavaScript -->
+                </div>
+            </section>
+
+            <!-- قسم الدردشات -->
+            <section id="chatsSection" class="section chats-section">
+                <div class="chat-sidebar card">
+                    <div class="chat-search-bar">
+                        <input type="text" id="searchUserInput" placeholder="ابحث عن مستخدمين...">
+                        <button id="searchUserBtn" class="icon-button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-results-list">
+                        <!-- نتائج البحث ستعرض هنا -->
+                    </div>
+                    <h3>المحادثات الخاصة</h3>
+                    <div id="chatsList" class="chats-list">
+                        <!-- قائمة الدردشات ستعرض هنا بواسطة JavaScript -->
+                    </div>
+                </div>
+
+                <!-- حاوية الدردشة الفعلية (تظهر كشاشة كاملة على الموبايل وداخل القسم على الديسكتوب) -->
+                <div id="chatContainer" class="chat-container">
+                    <div class="chat-header">
+                        <button id="closeChatBtn" class="header-icon-button">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <img src="" alt="صورة الدردشة" class="chat-avatar" id="chatHeaderAvatar">
+                        <div class="chat-header-info">
+                            <h3 id="chatHeaderName">اسم الدردشة</h3>
+                            <span id="chatStatus" class="chat-status"></span>
+                        </div>
+                        <!--
+                            تم إزالة أزرار إدارة الدردشة مؤقتاً هنا
+                            لأنها تحتاج لمنطق معقد يخرج عن نطاق الخطة المجانية الأولية
+                            أو قد يسبب تعقيدات غير ضرورية حالياً.
+                            <div id="chatManagement" class="chat-management" style="display: none;">
+                                <button id="banUserBtn" title="حظر المستخدم">🚫</button>
+                                <button id="archiveChatBtn" title="أرشفة المحادثة">📁</button>
+                                <button id="leaveChatBtn" title="مغادرة المحادثة">👋</button>
+                            </div>
+                        -->
+                    </div>
+                    <div id="messagesList" class="messages-list">
+                        <!-- الرسائل ستعرض هنا بواسطة JavaScript -->
+                    </div>
+                    <form id="messageInputForm" class="message-input-form">
+                        <button type="button" id="recordAudioBtn" title="رسالة صوتية" class="icon-button">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <textarea id="messageInput" placeholder="اكتب رسالة..." rows="1"></textarea>
+                        <button type="button" id="emojiPickerBtn" title="إيموجي" class="icon-button">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                        <button type="submit" id="sendMessageBtn" title="إرسال" class="primary-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <div id="emojiPicker" class="emoji-picker card">
+                        <!-- الإيموجي ستعرض هنا بواسطة JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- قسم المعارف -->
+            <section id="acquaintancesSection" class="section">
+                <div class="section-header">
+                    <h2>معارفي</h2>
+                    <button id="refreshAcquaintancesBtn" class="icon-button">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                </div>
+                <div id="acquaintancesList" class="card user-list-card">
+                    <!-- قائمة المعارف ستعرض هنا -->
+                    <div class="empty">لا توجد لديك معارف بعد.</div>
+                </div>
+            </section>
+
+            <!-- قسم الملف الشخصي -->
+            <section id="profileSection" class="section">
+                <div class="section-header">
+                    <h2>ملفي الشخصي</h2>
+                    <button id="showSettingsBtn" class="primary-button" style="display: none;">
+                        <i class="fas fa-cogs"></i> إعدادات Firebase (المسؤول)
+                    </button>
+                </div>
+                <div class="card profile-card">
+                    <div class="profile-avatar-wrapper">
+                        <img src="https://via.placeholder.com/150/CCCCCC/000000?text=AV" alt="صورة الملف الشخصي" id="profileAvatar" class="profile-avatar">
+                        <input type="file" id="profileImageUpload" accept="image/*" style="display: none;">
+                        <button id="changeAvatarBtn" class="change-avatar-btn">
+                            <i class="fas fa-camera"></i> تغيير الصورة
+                        </button>
+                    </div>
+                    <h3 id="profileUsername">اسم المستخدم</h3>
+                    <input type="text" id="newUsernameInput" placeholder="اسم المستخدم الجديد" style="display: none;">
+                    <button id="saveUsernameBtn" class="primary-button" style="display: none;">
+                        <i class="fas fa-save"></i> حفظ الاسم
+                    </button>
+                    <span id="profileEmail" class="text-secondary">البريد الإلكتروني: loading...</span>
+                    <p id="profileStatusMessage" class="text-secondary">لا توجد حالة محددة.</p>
+
+                    <div class="profile-stats">
+                        <span>المنشورات: <strong id="postsCount">0</strong></span>
+                        <span>المعارف: <strong id="acquaintancesCount">0</strong></span>
+                        <span>المنشورات المحفوظة: <strong id="savedPostsCount">0</strong></span>
+                    </div>
+                    <div class="profile-actions">
+                        <button id="editUsernameBtn" class="secondary-button">
+                            <i class="fas fa-edit"></i> تعديل الاسم
+                        </button>
+                        <button id="editStatusMessageBtn" class="secondary-button">
+                            <i class="fas fa-comment-alt"></i> تعديل الحالة
+                        </button>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="privateProfileCheckbox">
+                            <span class="checkmark"></span>
+                            قفل الملف الشخصي
+                        </label>
+                    </div>
+                </div>
+
+                <!-- قائمة المنشورات المحفوظة في الملف الشخصي -->
+                <div class="card saved-posts-card">
+                    <h3>
+                        <i class="fas fa-bookmark"></i> المنشورات المحفوظة
+                    </h3>
+                    <div id="savedPostsList" class="posts-list">
+                        <!-- المنشورات المحفوظة ستعرض هنا -->
+                        <div class="empty">لا توجد منشورات محفوظة.</div>
+                    </div>
+                </div>
+
+                <!-- إعدادات Firebase (فقط للمسؤول) -->
+                <div id="settingsCard" class="card settings-card" style="display: none;">
+                    <h3>
+                        <i class="fas fa-tools"></i> إعدادات Firebase
+                    </h3>
+                    <form id="settingsForm" class="settings-form">
+                        <label for="apiKeyInput">API Key:</label>
+                        <input type="text" id="apiKeyInput" required>
+
+                        <label for="authDomainInput">Auth Domain:</label>
+                        <input type="text" id="authDomainInput" required>
+
+                        <label for="databaseURLInput">Database URL:</label>
+                        <input type="text" id="databaseURLInput" placeholder="(اختياري)" >
+
+                        <label for="projectIdInput">Project ID:</label>
+                        <input type="text" id="projectIdInput" required>
+
+                        <label for="storageBucketInput">Storage Bucket:</label>
+                        <input type="text" id="storageBucketInput" placeholder="(اختياري)">
+
+                        <label for="messagingSenderIdInput">Messaging Sender ID:</label>
+                        <input type="text" id="messagingSenderIdInput" required>
+
+                        <label for="appIdInput">App ID:</label>
+                        <input type="text" id="appIdInput" required>
+
+                        <button type="button" id="saveFirebaseConfigBtn" class="primary-button">
+                            <i class="fas fa-save"></i> حفظ إعدادات Firebase
+                        </button>
+                        <p id="firebaseConfigMessage" class="error-message"></p>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Firebase SDK (تم التحديث إلى 9.1.0 لضمان التوافق والأداء) -->
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore-compat.js"></script>
+    
+    <!-- ملفات JavaScript الخاصة بالمشروع -->
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="firestore.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+
+/* public/style.css */
+
+/* استيراد خط القاهرة من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap');
+
+/* تعريف المتغيرات لألوان الثيم الفاتح والداكن */
+:root {
+    /* ألوان الثيم الفاتح */
+    --primary-color: #4CAF50; /* أخضر زمردي */
+    --primary-dark-color: #388E3C; /* أخضر داكن */
+    --accent-color: #FFC107; /* أصفر ذهبي */
+    --background-color: #f0f2f5; /* رمادي فاتح للخلفية */
+    --surface-color: #ffffff; /* أبيض للعناصر البارزة (البطاقات) */
+    --text-color: #333333; /* لون النص الأساسي */
+    --text-light-color: #666666; /* لون النص الثانوي/الخفيف */
+    --border-color: #e0e0e0; /* لون الحدود */
+    --shadow-color: rgba(0, 0, 0, 0.1); /* لون الظلال */
+    --message-sent-bg: #DCF8C6; /* لون خلفية الرسائل المرسلة (أخضر فاتح) */
+    --message-received-bg: #E0E0E0; /* لون خلفية الرسائل المستلمة (رمادي فاتح) */
+    --unread-divider-color: #007bff; /* لون فاصل الرسائل الجديدة (أزرق) */
+    --online-indicator-color: #28a745; /* لون مؤشر الاتصال (أخضر) */
+    --error-color: #d32f2f; /* لون رسائل الخطأ */
+
+    /* ألوان الثيم الداكن */
+    --dark-background-color: #1a202c; /* خلفية داكنة جداً */
+    --dark-surface-color: #2d3748; /* لون سطح داكن للعناصر البارزة */
+    --dark-text-color: #e2e8f0; /* نص فاتح للوضع الداكن */
+    --dark-text-light-color: #a0aec0; /* نص رمادي فاتح للوضع الداكن */
+    --dark-border-color: #4a5568; /* حدود داكنة */
+    --dark-shadow-color: rgba(0, 0, 0, 0.4); /* ظلال أغمق */
+    --dark-message-sent-bg: #22543d; /* رسائل مرسلة داكنة */
+    --dark-message-received-bg: #4a5568; /* رسائل مستلمة داكنة */
+    --dark-primary-color: #68d391; /* أخضر فاتح للوضع الداكن */
+    --dark-primary-dark-color: #48bb78; /* أخضر داكن للوضع الداكن */
+    --dark-online-indicator-color: #48bb78; /* مؤشر متصل داكن */
+}
+
+/* الوضع الليلي */
+body.dark-mode {
+    background-color: var(--dark-background-color);
+    color: var(--dark-text-color);
+}
+
+body.dark-mode .card,
+body.dark-mode header,
+body.dark-mode nav,
+body.dark-mode .chat-header,
+body.dark-mode .message-input-form,
+body.dark-mode .chat-sidebar,
+body.dark-mode .online-users-sidebar,
+body.dark-mode .user-item,
+body.dark-mode .chat-item,
+body.dark-mode .emoji-picker,
+body.dark-mode .comments-section,
+body.dark-mode .comment-item,
+body.dark-mode .auth-card {
+    background-color: var(--dark-surface-color);
+    border-color: var(--dark-border-color);
+    box-shadow: 0 4px 10px var(--dark-shadow-color);
+}
+
+body.dark-mode button:not(.message-status .check-icon),
+body.dark-mode .primary-button,
+body.dark-mode .secondary-button,
+body.dark-mode .icon-button {
+    background-color: var(--dark-primary-color);
+    color: var(--dark-text-color); /* نص زر فاتح */
+}
+
+body.dark-mode button:hover:not(.message-status .check-icon),
+body.dark-mode .primary-button:hover,
+body.dark-mode .secondary-button:hover,
+body.dark-mode .icon-button:hover {
+    background-color: var(--dark-primary-dark-color);
+}
+
+body.dark-mode .logout-btn {
+    background-color: #f44336; /* أحمر داكن */
+    color: var(--dark-text-color);
+}
+
+body.dark-mode .logout-btn:hover {
+    background-color: #d32f2f;
+}
+
+body.dark-mode input,
+body.dark-mode textarea {
+    background-color: var(--dark-background-color);
+    color: var(--dark-text-color);
+    border-color: var(--dark-border-color);
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: var(--dark-text-light-color);
+}
+
+body.dark-mode .message-item.sent .message-content {
+    background-color: var(--dark-message-sent-bg);
+}
+
+body.dark-mode .message-item.received .message-content {
+    background-color: var(--dark-message-received-bg);
+}
+
+body.dark-mode .check-icon {
+    color: var(--dark-text-light-color); /* رمادي فاتح للعلامات */
+}
+body.dark-mode .check-icon.read {
+    color: #007bff; /* أزرق للمقروءة */
+}
+
+body.dark-mode .post-actions button {
+    border-color: var(--dark-border-color);
+    color: var(--dark-text-light-color);
+}
+body.dark-mode .post-actions button:hover {
+    background-color: var(--dark-background-color);
+    color: var(--dark-primary-color);
+    border-color: var(--dark-primary-color);
+}
+
+body.dark-mode .post-actions button.delete-post-btn {
+    color: #ef9a9a;
+    border-color: #ef9a9a;
+}
+body.dark-mode .post-actions button.delete-post-btn:hover {
+    background-color: #d32f2f;
+    color: white;
+}
+
+body.dark-mode .post-interaction-btn {
+    color: var(--dark-text-light-color);
+}
+body.dark-mode .post-interaction-btn.active {
+    color: var(--accent-color); /* لون مميز للتفاعل النشط في الوضع الليلي */
+}
+
+body.dark-mode .online-users-sidebar {
+    background-color: var(--dark-surface-color);
+    border-color: var(--dark-border-color);
+}
+body.dark-mode .online-user .online-avatar {
+    border-color: var(--dark-primary-color);
+}
+body.dark-mode .online-user span {
+    color: var(--dark-text-color);
+}
+body.dark-mode .online-count {
+    color: var(--dark-text-light-color);
+}
+body.dark-mode .online-users-list li {
+    color: var(--dark-text-color);
+}
+body.dark-mode .online-users-list li .status-indicator {
+    background-color: var(--dark-online-indicator-color);
+}
+body.dark-mode .online-users-list li img {
+    border-color: var(--dark-primary-color);
+}
+
+/* قواعد CSS عامة */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+    text-align: right;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* شاشة التحميل */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+}
+
+.loading-screen.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.spinner {
+    border: 8px solid var(--border-color);
+    border-top: 8px solid var(--primary-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 1.2em;
+    color: var(--text-color);
+}
+
+/* شاشات رئيسية (المصادقة والتطبيق) */
+.screen {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* شاشة المصادقة */
+.auth-screen {
+    justify-content: center;
+    align-items: center;
+    background-color: var(--background-color);
+}
+
+.auth-card {
+    background-color: var(--surface-color);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px var(--shadow-color);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card h2 {
+    color: var(--primary-color);
+    margin-bottom: 30px;
+    font-size: 2.2em;
+    font-weight: 700;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.auth-form input {
+    padding: 14px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 1.1em;
+    width: 100%;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.25);
+}
+
+.auth-form button {
+    padding: 14px 25px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 100%;
+    font-weight: bold;
+}
+
+.auth-form button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-2px);
+}
+
+.auth-form button:active {
+    transform: translateY(0);
+}
+
+.auth-error {
+    color: var(--error-color);
+    margin-top: 20px;
+    font-size: 0.95em;
+    min-height: 1.2em; /* للحفاظ على الارتفاع حتى لو كانت فارغة */
+}
+
+.auth-toggle-text {
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+.auth-toggle-text a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.auth-toggle-text a:hover {
+    color: var(--primary-dark-color);
+    text-decoration: underline;
+}
+
+/* التطبيق الرئيسي */
+.main-app {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    background-color: var(--background-color);
+}
+
+/* الرأس (Header) */
+header {
+    background-color: var(--surface-color);
+    padding: 15px 25px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    flex-wrap: wrap; /* للسماح بالعناصر بالانتقال إلى سطر جديد */
+    gap: 15px; /* مسافة بين العناصر */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+header h1 {
+    color: var(--primary-color);
+    font-size: 2em;
+    margin: 0;
+    font-weight: 700;
+}
+
+header nav {
+    display: flex;
+    gap: 10px;
+    flex-grow: 1; /* لتوزيع الأزرار */
+    justify-content: center; /* لتوسيط أزرار التنقل */
+    order: 1; /* يظهر تحت العنوان على الشاشات الصغيرة */
+    flex-wrap: wrap;
+}
+
+header nav .nav-button {
+    background-color: transparent;
+    color: var(--text-light-color);
+    border: none;
+    padding: 10px 18px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: color 0.3s ease, background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+}
+
+header nav .nav-button i {
+    font-size: 1.1em;
+}
+
+header nav .nav-button:hover,
+header nav .nav-button.active {
+    color: var(--primary-color);
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.header-right {
+    display: flex;
+    gap: 10px;
+    order: 2; /* يظهر على اليمين */
+}
+
+.header-icon-button {
+    background: none;
+    border: none;
+    font-size: 1.4em;
+    color: var(--text-light-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.header-icon-button:hover {
+    color: var(--primary-color);
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.logout-btn {
+    background-color: #f44336; /* أحمر */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+}
+
+.logout-btn:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+}
+
+/* الشريط الجانبي للمستخدمين المتصلين */
+.online-users-sidebar {
+    background-color: var(--surface-color);
+    padding: 20px 15px;
+    border-right: 1px solid var(--border-color); /* يظهر على اليمين في RTL */
+    box-shadow: -2px 0 8px var(--shadow-color);
+    overflow-y: auto;
+    display: none; /* مخفي افتراضياً على الشاشات الصغيرة */
+    flex-shrink: 0; /* لا ينكمش */
+    width: 250px; /* عرض ثابت */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.online-users-sidebar h3 {
+    color: var(--primary-color);
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.online-users-sidebar h3::before {
+    content: "●"; /* نقطة خضراء */
+    color: var(--online-indicator-color);
+    font-size: 0.8em;
+}
+
+.online-count {
+    font-size: 0.9em;
+    color: var(--text-light-color);
+    font-weight: normal;
+}
+
+.online-users-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.online-users-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.online-users-list li:last-child {
+    border-bottom: none;
+}
+
+.online-users-list li:hover {
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+.online-users-list li .online-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+}
+
+.online-users-list li span {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* الأقسام (Sections) */
+.main-content {
+    display: flex;
+    flex-grow: 1;
+    padding: 20px; /* padding عام للمحتوى الرئيسي */
+    overflow-y: auto;
+    background-color: var(--background-color);
+}
+
+.section {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+}
+
+.section.active {
+    display: flex;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.section-header h2 {
+    color: var(--primary-color);
+    font-size: 1.8em;
+    font-weight: 700;
+}
+
+.section-header .icon-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+}
+
+.section-header .icon-button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-2px);
+}
+.section-header .icon-button:active {
+    transform: translateY(0);
+}
+
+
+/* تصميم البطاقة العامة */
+.card {
+    background-color: var(--surface-color);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    margin-bottom: 20px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* أزرار أساسية وثانوية */
+.primary-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.primary-button:hover {
+    background-color: var(--primary-dark-color);
+    transform: translateY(-2px);
+}
+.primary-button:active {
+    transform: translateY(0);
+}
+
+.secondary-button {
+    background-color: #e9ecef;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, color 0.3s ease;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.secondary-button:hover {
+    background-color: #dee2e6;
+    transform: translateY(-2px);
+    color: var(--primary-color); /* تغيير اللون عند التحويم */
+}
+.secondary-button:active {
+    transform: translateY(0);
+}
+
+/* قسم المنشورات */
+.post-input-area {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.post-input-area textarea {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1em;
+    resize: vertical;
+    min-height: 100px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.post-input-area textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.25);
+}
+
+.post-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap; /* للسماح بالعناصر بالانتقال لسطر جديد */
+}
+
+/* تصميم Checkbox مخصص */
+.checkbox-container {
+    display: block;
+    position: relative;
+    padding-right: 35px; /* مسافة للأيقونة المخصصة */
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 0.95em;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    color: var(--text-light-color);
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 25px;
+    width: 25px;
+    background-color: var(--background-color);
+    border: 2px solid var(--border-color);
+    border-radius: 5px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+    background-color: #ccc;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-container .checkmark:after {
+    left: 9px;
+    top: 5px;
+    width: 8px;
+    height: 14px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+
+.posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.post-item {
+    background-color: var(--surface-color);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.post-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+}
+
+.post-username {
+    font-weight: bold;
+    color: var(--primary-dark-color);
+    font-size: 1.2em;
+    flex-grow: 1; /* للسماح لأزرار الإدارة بالانتقال إلى اليمين */
+}
+
+.post-content {
+    font-size: 1em;
+    line-height: 1.7;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    white-space: pre-wrap; /* للحفاظ على تنسيق النص */
+    word-wrap: break-word; /* لكسر الكلمات الطويلة */
+}
+
+.post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: var(--text-light-color);
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.post-footer .time {
+    flex-grow: 1;
+}
+
+.post-interactions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.reactions-container {
+    display: flex;
+    gap: 8px;
+}
+
+.reaction-btn {
+    background: none;
+    border: none;
+    font-size: 1.6em; /* حجم أكبر للإيموجي */
+    cursor: pointer;
+    color: var(--text-light-color);
+    transition: color 0.2s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.reaction-btn:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.reaction-btn.active {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.reaction-count {
+    font-size: 0.6em; /* حجم أصغر للعدد */
+    color: var(--text-light-color);
+}
+
+.comment-btn, .save-post-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: var(--text-light-color);
+    margin-left: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: color 0.3s ease, background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.comment-btn:hover, .save-post-btn:hover {
+    color: var(--primary-color);
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+/* أزرار إدارة المنشور (تعديل/حذف) */
+.post-actions {
+    margin-left: auto; /* يدفع الأزرار لليمين في RTL */
+    display: flex;
+    gap: 10px;
+}
+
+.post-actions button {
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text-light-color);
+    transition: all 0.2s ease;
+}
+
+.post-actions button:hover {
+    background-color: var(--background-color);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.post-actions button.delete-post-btn {
+    color: #f44336;
+    border-color: #f44336;
+}
+.post-actions button.delete-post-btn:hover {
+    background-color: #f44336;
+    color: white;
+}
+
+/* حقل تعديل المنشور */
+.edit-post-textarea {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1em;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 15px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+
+/* قسم التعليقات */
+.comments-section {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    background-color: rgba(0, 0, 0, 0.02); /* خلفية خفيفة */
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.comments-section h4 {
+    color: var(--primary-dark-color);
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.comment-input-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.comment-input-area textarea {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 0.95em;
+    resize: vertical;
+    min-height: 50px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.comment-input-area .primary-button {
+    padding: 10px 18px;
+    font-size: 0.95em;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.comment-item {
+    background-color: var(--surface-color); /* لون خلفية للتعليقات */
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+}
+
+.comment-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+    flex-shrink: 0;
+}
+
+.comment-content-wrapper {
+    flex-grow: 1;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 1em;
+    margin-bottom: 5px;
+}
+
+.comment-text {
+    font-size: 0.95em;
+    color: var(--text-color);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.comment-time {
+    font-size: 0.8em;
+    color: var(--text-light-color);
+    margin-top: 8px;
+    text-align: left;
+}
+
+/* قسم الملف الشخصي */
+.profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    padding: 30px;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 5px solid var(--primary-color);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.change-avatar-btn {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 0;
+    font-size: 0.9em;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
+.profile-avatar-wrapper:hover .change-avatar-btn {
+    opacity: 1;
+}
+
+.profile-avatar-wrapper .change-avatar-btn i {
+    font-size: 1.1em;
+}
+
+.profile-username {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--primary-dark-color);
+    margin-bottom: 5px;
+}
+
+.text-secondary {
+    font-size: 1em;
+    color: var(--text-light-color);
+    margin-bottom: 10px;
+}
+
+#newUsernameInput {
+    display: none;
+    width: 70%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 1em;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#saveUsernameBtn {
+    display: none;
+    margin-top: 10px;
+    min-width: 150px; /* لضمان حجم كافٍ */
+}
+
+.profile-stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 25px;
+    margin-top: 20px;
+    font-size: 1em;
+    color: var(--text-light-color);
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    width: 100%;
+}
+
+.profile-stats span strong {
+    color: var(--primary-dark-color);
+    font-size: 1.2em;
+    margin-left: 5px;
+}
+
+.profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+/* قسم إعدادات Firebase */
+.settings-card {
+    display: none; /* مخفي افتراضياً */
+    margin-top: 30px;
+}
+
+.settings-card h3 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.settings-form label {
+    font-weight: bold;
+    color: var(--text-light-color);
+    margin-bottom: 5px;
+    display: block;
+}
+
+.settings-form input {
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.95em;
+    width: 100%;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#firebaseConfigMessage {
+    margin-top: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+
+/* قسم المعارف وقائمة المنشورات المحفوظة */
+.saved-posts-card, .user-list-card { /* تمت إعادة استخدام user-list-card لأغراض المعارف */
+    margin-top: 30px;
+    background-color: var(--surface-color);
+}
+
+.saved-posts-card h3, .user-list-card h3 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-item, .chat-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 10px; /* للتحسين البصري */
+    margin-bottom: 10px; /* مسافة بين العناصر */
+}
+
+.user-item:hover, .chat-item:hover, .chat-item.active {
+    background-color: rgba(76, 175, 80, 0.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.user-item:last-child, .chat-item:last-child {
+    border-bottom: none;
+}
+
+
+.user-avatar, .chat-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    flex-shrink: 0; /* منع الصورة من الانكماش */
+}
+
+.chat-item-content {
+    flex-grow: 1;
+}
+
+.chat-item h3, .user-item h3 {
+    font-size: 1.2em;
+    margin: 0;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-item .last-message {
+    font-size: 0.95em;
+    color: var(--text-light-color);
+    margin: 5px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* لتقييد عرض آخر رسالة */
+}
+
+.chat-item .time {
+    font-size: 0.8em;
+    color: var(--text-light-color);
+    flex-shrink: 0;
+}
+
+/* مؤشر حالة الاتصال (نقطة خضراء) */
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--online-indicator-color);
+    display: inline-block;
+    margin-left: 5px; /* مسافة عن النص */
+    flex-shrink: 0;
+}
+
+
+/* حاوية الدردشة الفعلية */
+.chat-container {
+    flex-grow: 1;
+    display: none;
+    flex-direction: column;
+    position: absolute; /* لجعلها فوق الشريط الجانبي في الموبايل */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    z-index: 10; /* فوق الأقسام الأخرى */
+    transition: transform 0.3s ease; /* للانتقال السلس */
+}
+
+.chat-container.active {
+    display: flex;
+    transform: translateX(0);
+}
+
+.chat-container:not(.active) {
+    transform: translateX(100%); /* يدفع للخارج على اليمين في RTL */
+}
+
+
+.chat-header {
+    background-color: var(--surface-color);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    flex-shrink: 0; /* منع الرأس من الانكماش */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chat-header .header-icon-button { /* إعادة استخدام نمط زر الأيقونات في الرأس */
+    font-size: 1.5em;
+    margin-left: 10px;
+}
+
+.chat-header .chat-avatar {
+    width: 55px;
+    height: 55px;
+    border: 3px solid var(--primary-color);
+}
+
+.chat-header-info {
+    flex-grow: 1;
+}
+
+.chat-header-info h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--text-color);
+    font-weight: 700;
+}
+
+.chat-status {
+    font-size: 0.9em;
+    color: var(--text-light-color);
+    margin-top: 5px;
+}
+
+.messages-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column-reverse; /* لعرض الرسائل من الأسفل للأعلى */
+    gap: 15px;
+}
+
+/* فاصل الرسائل الجديدة */
+.unread-divider {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 0.95em;
+    color: var(--unread-divider-color);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.unread-divider::before,
+.unread-divider::after {
+    content: '';
+    flex-grow: 1;
+    height: 1px;
+    background-color: var(--unread-divider-color);
+    margin: 0 15px;
+}
+
+
+.message-item {
+    display: flex;
+    align-items: flex-end; /* لمحاذاة الرسائل في الأسفل */
+    gap: 10px;
+    max-width: 85%; /* لضمان وجود مساحة على الجانب الآخر */
+    animation: fadeInMessage 0.3s ease-out;
+}
+
+@keyframes fadeInMessage {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-item.sent {
+    align-self: flex-start; /* رسائل المرسل على اليمين في RTL */
+    flex-direction: row-reverse; /* عكس الترتيب ليكون الأفاتار على اليسار */
+}
+
+.message-item.received {
+    align-self: flex-end; /* رسائل المستقبل على اليسار في RTL */
+    flex-direction: row;
+}
+
+.message-item .message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.message-content {
+    background-color: var(--message-received-bg);
+    padding: 12px 18px;
+    border-radius: 20px;
+    position: relative;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    color: var(--text-color);
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    flex-grow: 0;
+    max-width: calc(100% - 50px); /* 40px avatar + 10px gap */
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+.message-item.sent .message-content {
+    background-color: var(--message-sent-bg);
+    border-bottom-left-radius: 20px;
+    border-top-left-radius: 20px;
+    border-bottom-right-radius: 5px; /* ذيل الرسالة */
+    border-top-right-radius: 20px;
+}
+
+.message-item.received .message-content {
+    border-bottom-right-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 5px; /* ذيل الرسالة */
+    border-top-left-radius: 20px;
+}
+
+.message-content .message-sender {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: var(--primary-dark-color);
+    margin-bottom: 5px;
+    text-align: right;
+}
+
+.message-content p {
+    margin: 0;
+}
+
+.message-time {
+    font-size: 0.75em;
+    color: var(--text-light-color);
+    margin-top: 8px;
+    text-align: left;
+}
+
+.message-item.sent .message-time {
+    text-align: right;
+}
+
+.message-status {
+    position: absolute;
+    bottom: 5px;
+    right: 5px; /* وضع علامات الصح داخل الفقاعة */
+    display: flex;
+    gap: 3px;
+}
+
+.message-item.sent .message-status {
+    left: 5px; /* للرسائل المرسلة تكون على اليسار */
+    right: auto;
+}
+
+.check-icon {
+    font-size: 0.8em;
+    color: var(--text-light-color); /* رمادي فاتح */
+}
+
+.check-icon.read {
+    color: #007bff; /* أزرق بعد القراءة */
+}
+
+.message-input-form {
+    display: flex;
+    padding: 15px;
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    gap: 10px;
+    align-items: flex-end; /* لمحاذاة العناصر للأسفل */
+    flex-shrink: 0; /* لا ينكمش */
+}
+
+.message-input-form textarea {
+    flex-grow: 1;
+    padding: 12px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1em;
+    resize: none;
+    min-height: 45px;
+    max-height: 150px; /* لتجنب التمدد اللانهائي */
+    overflow-y: auto;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.message-input-form .icon-button {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    font-size: 1.3em;
+    padding: 0; /* لإزالة البادينج الإضافي */
+    flex-shrink: 0;
+}
+
+.message-input-form .primary-button {
+    width: 50px;
+    height: 45px;
+    border-radius: 25px; /* شكل بيضاوي للمسة جمالية */
+    font-size: 1.3em;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* لوحة الإيموجي */
+.emoji-picker {
+    position: absolute;
+    bottom: 80px; /* فوق شريط الإدخال */
+    right: 15px;
+    width: 280px;
+    background-color: var(--surface-color);
+    border-radius: 15px;
+    box-shadow: 0 5px 20px var(--shadow-color);
+    padding: 15px;
+    display: none; /* مخفي افتراضياً */
+    flex-wrap: wrap;
+    gap: 8px;
+    z-index: 100;
+}
+
+.emoji-picker.active {
+    display: flex;
+}
+
+.emoji-item {
+    font-size: 1.8em;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.emoji-item:hover {
+    background-color: var(--background-color);
+}
+
+
+/* العناصر الفارغة / التحميل */
+.empty, .loading, .error-message {
+    text-align: center;
+    color: var(--text-light-color);
+    padding: 20px;
+    font-size: 1.1em;
+    margin: 20px 0;
+}
+
+.error-message {
+    color: var(--error-color);
+}
+
+/* تنسيق عام للأزرار والمدخلات */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important; /* لا يوجد تحويل عند التعطيل */
+}
+
+
+/* تخطيط الشاشة الكبيرة (أكثر من 768 بكسل) */
+@media (min-width: 768px) {
+    .main-app {
+        flex-direction: row; /* الشريط الجانبي والأقسام بجانب بعضها */
+    }
+
+    header nav {
+        order: 0; /* يعود لمكانه الطبيعي */
+        flex-grow: 0;
+    }
+
+    .main-content {
+        flex-grow: 1;
+        padding: 25px; /* padding أكبر للشاشات الكبيرة */
+    }
+
+    .online-users-sidebar {
+        display: flex; /* يظهر على الشاشات الكبيرة */
+    }
+
+    .chats-section {
+        display: flex;
+        flex-direction: row; /* الشريط الجانبي للدردشة على اليمين ومحتوى الدردشة على اليسار */
+        flex-grow: 1;
+        padding: 0; /* إزالة الـ padding من القسم العام للدردشات */
+        overflow: hidden;
+    }
+
+    .chat-sidebar {
+        width: 320px; /* عرض ثابت للشريط الجانبي للدردشة */
+        border-left: 1px solid var(--border-color);
+        border-right: none;
+        box-shadow: none;
+        flex-shrink: 0;
+    }
+
+    .chat-container {
+        position: relative; /* يعود لوضعه الطبيعي */
+        width: auto;
+        height: auto;
+        z-index: 1;
+        transform: translateX(0) !important; /* لضمان ظهوره بشكل صحيح */
+    }
+
+    .chat-header .close-chat-btn {
+        display: none; /* زر الإغلاق غير ضروري في شاشة كبيرة */
+    }
+
+    /* لضمان توسيط محتوى الأقسام الأخرى عندما يكون الشريط الجانبي ظاهراً */
+    #postsSection, #profileSection, #acquaintancesSection {
+        max-width: calc(100% - 250px); /* عرض المحتوى ناقص عرض الشريط الجانبي */
+        margin-right: auto; /* يدفع المحتوى لليسار */
+        margin-left: auto; /* يدفع المحتوى لليمين */
+    }
+}
+
+/* تخطيط الموبايل (أقل من 768 بكسل) */
+@media (max-width: 767px) {
+    header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    header h1 {
+        font-size: 1.6em;
+    }
+
+    header nav {
+        width: 100%;
+        justify-content: space-around;
+        gap: 5px;
+    }
+
+    header nav .nav-button {
+        padding: 8px 10px;
+        font-size: 0.9em;
+        gap: 5px;
+    }
+
+    .logout-btn, .header-icon-button {
+        padding: 6px 12px;
+        font-size: 0.85em;
+        margin-top: 10px;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: center;
+        order: 3;
+    }
+
+    .main-content {
+        padding: 15px;
+    }
+
+    .auth-card {
+        padding: 30px;
+    }
+
+    .section-header h2 {
+        font-size: 1.5em;
+    }
+
+    .section-header .icon-button {
+        font-size: 0.8em;
+        padding: 6px 12px;
+    }
+
+    .chat-sidebar {
+        width: 100%;
+        border-left: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .profile-card {
+        padding: 20px;
+    }
+
+    .profile-avatar-wrapper {
+        width: 100px;
+        height: 100px;
+        border-width: 3px;
+    }
+
+    .profile-username {
+        font-size: 1.6em;
+    }
+
+    .profile-stats {
+        flex-direction: column;
+        gap: 15px;
+        padding-top: 15px;
+    }
+
+    .profile-actions {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .profile-actions button {
+        width: 100%;
+    }
+
+    .message-item {
+        max-width: 95%; /* زيادة العرض على الموبايل */
+    }
+
+    .emoji-picker {
+        width: 250px;
+        bottom: 70px;
+    }
+}
+
+
+
