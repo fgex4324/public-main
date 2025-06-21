@@ -16,6 +16,7 @@
             --gray: #a0a0a0;
             --light-bg: #f0f2f5;
             --success: #4caf50;
+            --error: #f44336;
             --card-bg: rgba(15, 30, 55, 0.8);
             --border-radius: 16px;
             --box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
@@ -98,7 +99,7 @@
         }
 
         #user-info {
-            display: none;
+            display: flex;
             align-items: center;
             gap: 10px;
             padding: 5px 15px;
@@ -114,6 +115,7 @@
             object-fit: cover;
             border: 2px solid var(--primary);
             box-shadow: 0 0 10px rgba(219, 62, 177, 0.3);
+            cursor: pointer;
         }
 
         #user-name {
@@ -471,6 +473,27 @@
             box-shadow: 0 0 0 2px rgba(219, 62, 177, 0.5);
         }
 
+        #attachment-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--light);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #attachment-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         #send-btn {
             width: 55px;
             height: 55px;
@@ -617,7 +640,7 @@
         }
 
         .toast.error {
-            border-left-color: #ff4d4f;
+            border-left-color: var(--error);
         }
 
         /* Responsive */
@@ -764,6 +787,247 @@
         .input-focused #input-area {
             box-shadow: 0 0 25px rgba(219, 62, 177, 0.5);
         }
+        
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: var(--darker);
+            width: 90%;
+            max-width: 500px;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--primary);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .modal-header h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .modal-header p {
+            color: var(--gray);
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: -15px;
+            left: -10px;
+            background: var(--primary);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 1.2rem;
+            border: 2px solid white;
+        }
+        
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--light);
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--light);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            position: relative;
+            color: var(--gray);
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+        }
+        
+        .tab.active:after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .btn-block {
+            width: 100%;
+            padding: 0.9rem;
+            font-size: 1rem;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+        }
+        
+        .divider:before,
+        .divider:after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .divider span {
+            padding: 0 1rem;
+            color: var(--gray);
+        }
+        
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .social-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .social-btn.google {
+            background: #dd4b39;
+        }
+        
+        .social-btn.facebook {
+            background: #3b5998;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-3px);
+        }
+        
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 1.5rem;
+            display: block;
+            border: 3px solid var(--primary);
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .profile-pic:hover:after {
+            content: 'تغيير الصورة';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .random-names {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 1rem 0;
+        }
+        
+        .name-option {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .name-option:hover {
+            background: rgba(219, 62, 177, 0.2);
+            border-color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -772,6 +1036,124 @@
     
     <!-- Floating Particles -->
     <div class="particles" id="particles"></div>
+
+    <!-- Authentication Modal -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="close-btn" id="close-auth-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2>مرحبًا بك في نار الدردشة</h2>
+                <p>سجّل الدخول للبدء بالمحادثة</p>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="login">تسجيل الدخول</div>
+                <div class="tab" data-tab="signup">إنشاء حساب</div>
+            </div>
+            
+            <div class="tab-content active" id="login-tab">
+                <div class="form-group">
+                    <label for="login-email">البريد الإلكتروني</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="ادخل بريدك الإلكتروني">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">كلمة المرور</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="ادخل كلمة المرور">
+                </div>
+                
+                <button id="login-email-btn" class="btn btn-primary btn-block">
+                    <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                </button>
+                
+                <div class="divider">
+                    <span>أو</span>
+                </div>
+                
+                <div class="social-login">
+                    <div class="social-btn google" id="google-login-btn">
+                        <i class="fab fa-google"></i>
+                    </div>
+                    <div class="social-btn facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="signup-tab">
+                <div class="form-group">
+                    <label for="signup-name">اسم المستخدم</label>
+                    <input type="text" id="signup-name" class="form-control" placeholder="اختر اسمًا مميزًا">
+                    <p style="color: var(--gray); margin-top: 5px; font-size: 0.85rem;">أو اختر اسمًا عشوائيًا:</p>
+                    <div class="random-names" id="random-names">
+                        <div class="name-option">محارب النار</div>
+                        <div class="name-option">فارس القلم</div>
+                        <div class="name-option">بطل الدردشة</div>
+                        <div class="name-option">صاحب السر</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-email">البريد الإلكتروني</label>
+                    <input type="email" id="signup-email" class="form-control" placeholder="ادخل بريدك الإلكتروني">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-password">كلمة المرور</label>
+                    <input type="password" id="signup-password" class="form-control" placeholder="اختر كلمة مرور قوية">
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-password-confirm">تأكيد كلمة المرور</label>
+                    <input type="password" id="signup-password-confirm" class="form-control" placeholder="أعد إدخال كلمة المرور">
+                </div>
+                
+                <button id="signup-btn" class="btn btn-primary btn-block">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Modal -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="close-btn" id="close-profile-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2>الملف الشخصي</h2>
+                <p>تعديل معلومات حسابك</p>
+            </div>
+            
+            <div class="form-group" style="text-align: center;">
+                <img id="profile-pic" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="profile-pic">
+                <input type="file" id="profile-upload" style="display: none;" accept="image/*">
+            </div>
+            
+            <div class="form-group">
+                <label for="profile-name">اسم المستخدم</label>
+                <input type="text" id="profile-name" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="profile-email">البريد الإلكتروني</label>
+                <input type="email" id="profile-email" class="form-control" disabled>
+            </div>
+            
+            <button id="save-profile-btn" class="btn btn-primary btn-block">
+                <i class="fas fa-save"></i> حفظ التغييرات
+            </button>
+            
+            <div class="form-group" style="margin-top: 1.5rem; text-align: center;">
+                <button id="change-password-btn" class="btn btn-outline">
+                    <i class="fas fa-lock"></i> تغيير كلمة المرور
+                </button>
+            </div>
+        </div>
+    </div>
 
     <header>
         <div class="logo">
@@ -836,8 +1218,7 @@
                     <!-- الرسائل تظهر هنا -->
                     <div class="welcome-message">
                         <h3>مرحبًا بك في نار الدردشة! 🔥</h3>
-                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. تم تحسين منطقة الكتابة لتكون ثابتة وتظهر بالكامل!</p>
-                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">جرب الضغط على منطقة الكتابة لترتفع للأعلى!</p>
+                        <p>سجّل الدخول للبدء بالمحادثة مع الأصدقاء</p>
                     </div>
                 </div>
             </div>
@@ -849,6 +1230,9 @@
     <!-- Input Container - Fixed at bottom -->
     <div id="input-container">
         <div id="input-area">
+            <button id="attachment-btn">
+                <i class="fas fa-paperclip"></i>
+            </button>
             <input type="text" id="message-input" placeholder="اكتب رسالة نارية...">
             <button id="send-btn">
                 <i class="fas fa-paper-plane"></i>
@@ -890,6 +1274,23 @@
         const chatMessages = document.getElementById('chat-messages');
         const typingIndicator = document.getElementById('typing-indicator');
         const body = document.body;
+        const authModal = document.getElementById('auth-modal');
+        const profileModal = document.getElementById('profile-modal');
+        const closeAuthModal = document.getElementById('close-auth-modal');
+        const closeProfileModal = document.getElementById('close-profile-modal');
+        const profilePic = document.getElementById('profile-pic');
+        const profileUpload = document.getElementById('profile-upload');
+        const profileName = document.getElementById('profile-name');
+        const profileEmail = document.getElementById('profile-email');
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        const attachmentBtn = document.getElementById('attachment-btn');
+
+        // أسماء عشوائية
+        const randomNames = [
+            "محارب النار", "فارس القلم", "بطل الدردشة", "صاحب السر", 
+            "نور الصباح", "سهم الصحراء", "قاهر المستحيل", "بحر المعرفة",
+            "صقر الجو", "ليث الغابة", "رعد السماء", "نسيم الربيع"
+        ];
 
         // وظيفة لعرض الإشعارات
         function showToast(message, type = 'info') {
@@ -901,12 +1302,103 @@
             }, 3000);
         }
 
+        // فتح وإغلاق النوافذ المنبثقة
+        function openModal(modal) {
+            modal.classList.add('show');
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('show');
+        }
+
+        // إدارة النوافذ المنبثقة
+        loginBtn.addEventListener('click', () => openModal(authModal));
+        closeAuthModal.addEventListener('click', () => closeModal(authModal));
+        closeProfileModal.addEventListener('click', () => closeModal(profileModal));
+        userPhoto.addEventListener('click', () => openModal(profileModal));
+        
+        // إدارة التبويبات
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // إزالة النشاط من جميع التبويبات
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // إضافة النشاط للتبويب المحدد
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
+
+        // اختيار اسم عشوائي
+        document.querySelectorAll('.name-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.getElementById('signup-name').value = option.textContent;
+            });
+        });
+
+        // تسجيل الدخول باستخدام البريد الإلكتروني
+        document.getElementById('login-email-btn').addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                showToast('الرجاء ملء جميع الحقول!', 'error');
+                return;
+            }
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    showToast('تم تسجيل الدخول بنجاح!', 'success');
+                    closeModal(authModal);
+                })
+                .catch(error => {
+                    console.error("خطأ في تسجيل الدخول: ", error);
+                    showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة!', 'error');
+                });
+        });
+
+        // إنشاء حساب جديد
+        document.getElementById('signup-btn').addEventListener('click', () => {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const passwordConfirm = document.getElementById('signup-password-confirm').value;
+            
+            if (!name || !email || !password || !passwordConfirm) {
+                showToast('الرجاء ملء جميع الحقول!', 'error');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showToast('كلمتا المرور غير متطابقتين!', 'error');
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // تحديث اسم المستخدم
+                    return userCredential.user.updateProfile({
+                        displayName: name
+                    });
+                })
+                .then(() => {
+                    showToast('تم إنشاء الحساب بنجاح!', 'success');
+                    closeModal(authModal);
+                })
+                .catch(error => {
+                    console.error("خطأ في إنشاء الحساب: ", error);
+                    showToast('حدث خطأ أثناء إنشاء الحساب!', 'error');
+                });
+        });
+
         // تسجيل الدخول بجوجل
-        loginBtn.addEventListener('click', () => {
+        document.getElementById('google-login-btn').addEventListener('click', () => {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider)
                 .then(() => {
                     showToast('تم تسجيل الدخول بنجاح!', 'success');
+                    closeModal(authModal);
                 })
                 .catch(error => {
                     console.error("خطأ في التسجيل: ", error);
@@ -926,13 +1418,93 @@
                 });
         });
 
+        // تحديث الملف الشخصي
+        saveProfileBtn.addEventListener('click', () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const newName = profileName.value;
+            if (!newName) {
+                showToast('الرجاء إدخال اسم مستخدم!', 'error');
+                return;
+            }
+            
+            // تحديث الاسم
+            user.updateProfile({
+                displayName: newName
+            })
+            .then(() => {
+                // تحديث واجهة المستخدم
+                userName.textContent = newName;
+                showToast('تم تحديث الملف الشخصي بنجاح!', 'success');
+                closeModal(profileModal);
+            })
+            .catch(error => {
+                console.error("خطأ في تحديث الملف الشخصي: ", error);
+                showToast('حدث خطأ أثناء تحديث الملف الشخصي!', 'error');
+            });
+        });
+
+        // تحميل صورة الملف الشخصي
+        profilePic.addEventListener('click', () => {
+            profileUpload.click();
+        });
+
+        profileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            // رفع الصورة إلى التخزين
+            const storageRef = storage.ref(`profile_pics/${user.uid}`);
+            const uploadTask = storageRef.put(file);
+            
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    // عرض تقدم التحميل
+                },
+                (error) => {
+                    console.error("خطأ في تحميل الصورة: ", error);
+                    showToast('حدث خطأ أثناء تحميل الصورة!', 'error');
+                },
+                () => {
+                    // الحصول على رابط الصورة
+                    uploadTask.snapshot.ref.getDownloadURL()
+                        .then(downloadURL => {
+                            // تحديث صورة المستخدم
+                            return user.updateProfile({
+                                photoURL: downloadURL
+                            });
+                        })
+                        .then(() => {
+                            // تحديث واجهة المستخدم
+                            userPhoto.src = downloadURL;
+                            profilePic.src = downloadURL;
+                            showToast('تم تحديث الصورة الشخصية بنجاح!', 'success');
+                        })
+                        .catch(error => {
+                            console.error("خطأ في تحديث الصورة: ", error);
+                            showToast('حدث خطأ أثناء تحديث الصورة!', 'error');
+                        });
+                }
+            );
+        });
+
         // تتبع حالة المستخدم
         auth.onAuthStateChanged(user => {
             if (user) {
                 userInfo.style.display = 'flex';
-                userPhoto.src = user.photoURL;
-                userName.textContent = user.displayName;
+                userPhoto.src = user.photoURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                userName.textContent = user.displayName || randomNames[Math.floor(Math.random() * randomNames.length)];
                 loginBtn.style.display = 'none';
+                
+                // تحديث بيانات النافذة المنبثقة للملف الشخصي
+                profileName.value = user.displayName || '';
+                profileEmail.value = user.email || '';
+                profilePic.src = user.photoURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                
                 // بدء استماع القنوات بعد تسجيل الدخول
                 initChat();
                 
@@ -940,9 +1512,8 @@
                 setTimeout(() => {
                     if (document.querySelector('.welcome-message')) {
                         document.querySelector('.welcome-message').innerHTML = `
-                            <h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
+                            <h3>مرحبًا ${user.displayName || userName.textContent}! 👋</h3>
                             <p>أنت الآن في القناة العامة. ابدأ المحادثة الآن أو اختر قناة أخرى من القائمة الجانبية</p>
-                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منطقة الكتابة ثابتة وتظهر بالكامل!</p>
                         `;
                     }
                 }, 1000);
@@ -1028,7 +1599,7 @@
                     if (snapshot.empty) {
                         const user = auth.currentUser;
                         const welcomeMessage = user ? 
-                            `<h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
+                            `<h3>مرحبًا ${user.displayName || userName.textContent}! 👋</h3>
                              <p>كن أول من يبدأ المحادثة في هذه القناة!</p>` :
                             `<h3>مرحبًا بك في قناة ${currentChannelElement.textContent}</h3>
                              <p>سجّل الدخول لبدء المحادثة في هذه القناة!</p>`;
@@ -1066,7 +1637,7 @@
             const msgElement = document.createElement('div');
             msgElement.className = `message ${isSelf ? 'self' : ''}`;
             msgElement.innerHTML = `
-                <img src="${msg.photoURL}" alt="${msg.name}">
+                <img src="${msg.photoURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" alt="${msg.name}">
                 <div class="msg-content">
                     <strong>${msg.name}</strong>
                     ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width: 300px; border-radius: 10px; margin: 8px 0; border: 1px solid rgba(219, 62, 177, 0.3);">` : ''}
@@ -1102,8 +1673,8 @@
                 await db.collection(`channels/${currentChannel}/messages`).add({
                     text: message,
                     uid: user.uid,
-                    name: user.displayName,
-                    photoURL: user.photoURL,
+                    name: user.displayName || userName.textContent,
+                    photoURL: user.photoURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
@@ -1156,7 +1727,7 @@
             messageInput.addEventListener('input', () => {
                 if (messageInput.value.trim()) {
                     typingRef.set({
-                        name: user.displayName,
+                        name: user.displayName || userName.textContent,
                         timestamp: new Date()
                     });
                     
@@ -1219,4 +1790,4 @@
         }
     </script>
 </body>
-</html>
+    </html>
