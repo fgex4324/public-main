@@ -205,6 +205,13 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* Main Container */
         .app-container {
             display: flex;
@@ -390,6 +397,7 @@
             max-width: 80%;
             border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
+            word-break: break-word;
         }
 
         .msg-content:after {
@@ -499,11 +507,31 @@
             flex-shrink: 0;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
         }
 
-        #send-btn:hover {
+        #send-btn:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 5px 20px rgba(219, 62, 177, 0.5);
+        }
+
+        #send-btn.loading .fa-paper-plane {
+            display: none;
+        }
+
+        #send-btn.loading:after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Typing Indicator */
@@ -579,6 +607,36 @@
             padding: 2rem;
             color: var(--primary);
             font-size: 1.1rem;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--card-bg);
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            border-left: 4px solid var(--primary);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: #ff4d4f;
         }
 
         /* Responsive */
@@ -715,6 +773,9 @@
     <div class="boundary boundary-left"></div>
     <div class="boundary boundary-right"></div>
     
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
     <!-- Floating Particles -->
     <div class="particles" id="particles"></div>
 
@@ -781,8 +842,8 @@
                     <!-- الرسائل تظهر هنا -->
                     <div class="welcome-message">
                         <h3>مرحبًا بك في نار الدردشة! 🔥</h3>
-                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. هذا الموقع هو الجوهرة الحقيقية لمن يبحث عن تجربة دردشة فريدة ومتميزة!</p>
-                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">تم تطوير الموقع ليكون متجاوبًا مع جميع أحجام الشاشات مع حل مشكلة منطقة الإدخال بالكامل</p>
+                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. تم إصلاح مشاكل تسجيل الدخول وتحسين منطقة الإرسال!</p>
+                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منصة الإرسال الآن تعمل بشكل مثالي على جميع الشاشات</p>
                     </div>
                 </div>
             </div>
@@ -811,7 +872,7 @@
             authDomain: "chat-ttt-2023e.firebaseapp.com",
             databaseURL: "https://chat-ttt-2023e-default-rtdb.firebaseio.com",
             projectId: "chat-ttt-2023e",
-            storageBucket: "chat-ttt-2023e.firebasestorage.app",
+            storageBucket: "chat-ttt-2023e.appspot.com",
             messagingSenderId: "89047633906",
             appId: "1:89047633906:web:1358af9c956746a120e56b"
         };
@@ -826,17 +887,42 @@
         const userInfo = document.getElementById('user-info');
         const userPhoto = document.getElementById('user-photo');
         const userName = document.getElementById('user-name');
+        const toast = document.getElementById('toast');
+
+        // وظيفة لعرض الإشعارات
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
 
         // تسجيل الدخول بجوجل
         loginBtn.addEventListener('click', () => {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                console.error("خطأ في التسجيل: ", error);
-            });
+            auth.signInWithPopup(provider)
+                .then(() => {
+                    showToast('تم تسجيل الدخول بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error("خطأ في التسجيل: ", error);
+                    showToast('حدث خطأ أثناء تسجيل الدخول!', 'error');
+                });
         });
 
         // تسجيل الخروج
-        logoutBtn.addEventListener('click', () => auth.signOut());
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut()
+                .then(() => {
+                    showToast('تم تسجيل الخروج بنجاح!', 'success');
+                })
+                .catch(error => {
+                    console.error("خطأ في تسجيل الخروج: ", error);
+                    showToast('حدث خطأ أثناء تسجيل الخروج!', 'error');
+                });
+        });
 
         // تتبع حالة المستخدم
         auth.onAuthStateChanged(user => {
@@ -854,7 +940,7 @@
                         document.querySelector('.welcome-message').innerHTML = `
                             <h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
                             <p>أنت الآن في القناة العامة. ابدأ المحادثة الآن أو اختر قناة أخرى من القائمة الجانبية</p>
-                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">تم حل مشكلة منطقة الإدخال بالكامل!</p>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منصة الإرسال الآن تعمل بشكل مثالي!</p>
                         `;
                     }
                 }, 1000);
@@ -905,7 +991,9 @@
         // إرسال رسالة
         sendBtn.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', e => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
         });
 
         // بدء الدردشة
@@ -988,18 +1076,41 @@
         // إرسال رسالة نصية
         async function sendMessage() {
             const message = messageInput.value.trim();
-            if (!message) return;
+            if (!message) {
+                showToast('الرجاء كتابة رسالة قبل الإرسال!', 'error');
+                return;
+            }
             
-            const user = auth.currentUser;
-            await db.collection(`channels/${currentChannel}/messages`).add({
-                text: message,
-                uid: user.uid,
-                name: user.displayName,
-                photoURL: user.photoURL,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            // تعطيل زر الإرسال أثناء المعالجة
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
             
-            messageInput.value = '';
+            try {
+                const user = auth.currentUser;
+                await db.collection(`channels/${currentChannel}/messages`).add({
+                    text: message,
+                    uid: user.uid,
+                    name: user.displayName,
+                    photoURL: user.photoURL,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // إعادة تعيين حقل الإدخال
+                messageInput.value = '';
+                messageInput.focus();
+                
+                // إظهار رسالة نجاح
+                showToast('تم إرسال الرسالة بنجاح!', 'success');
+            } catch (error) {
+                console.error("خطأ في إرسال الرسالة: ", error);
+                showToast('حدث خطأ أثناء إرسال الرسالة!', 'error');
+            } finally {
+                // إعادة تمكين زر الإرسال بعد الانتهاء
+                setTimeout(() => {
+                    sendBtn.disabled = false;
+                    sendBtn.classList.remove('loading');
+                }, 500);
+            }
         }
 
         // *********** [5] مؤشر الكتابة *********** //
@@ -1031,16 +1142,18 @@
             
             // إرسال حالة الكتابة
             messageInput.addEventListener('input', () => {
-                typingRef.set({
-                    name: user.displayName,
-                    timestamp: new Date()
-                });
-                
-                // إعادة ضبط المهلة
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    typingRef.delete();
-                }, TYPING_TIMEOUT);
+                if (messageInput.value.trim()) {
+                    typingRef.set({
+                        name: user.displayName,
+                        timestamp: new Date()
+                    });
+                    
+                    // إعادة ضبط المهلة
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        typingRef.delete();
+                    }, TYPING_TIMEOUT);
+                }
             });
         }
 
@@ -1092,12 +1205,6 @@
                 particlesContainer.appendChild(particle);
             }
         }
-        
-        // *********** [8] حل مشكلة منطقة الإدخال *********** //
-        // تم حل المشكلة في CSS بإضافة:
-        // - هوامش مناسبة
-        // - حجم مناسب للعناصر على الشاشات الصغيرة
-        // - استخدام flexbox بطريقة صحيحة
     </script>
 </body>
 </html>
