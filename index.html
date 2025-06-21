@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نار الدردشة - موقع يدمر الساحة 🔥</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #db3eb1;
+            --primary-dark: #b32a8f;
+            --secondary: #6c63ff;
+            --dark: #0a1930;
+            --darker: #050d1a;
+            --light: #ffffff;
+            --gray: #a0a0a0;
+            --light-bg: #f0f2f5;
+            --success: #4caf50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark), var(--darker));
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: rgba(10, 25, 48, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo i {
+            color: var(--primary);
+            font-size: 2rem;
+        }
+
+        /* User Section */
+        #user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #user-info {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #user-photo {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        #user-name {
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar (Channels) */
+        #sidebar {
+            width: 280px;
+            background-color: rgba(5, 13, 26, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #sidebar h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #channels-list {
+            list-style: none;
+        }
+
+        .channel-item {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .channel-item:hover, .channel-item.active {
+            background: rgba(219, 62, 177, 0.15);
+        }
+
+        .channel-item i {
+            color: var(--primary);
+        }
+
+        /* Chat Area */
+        #chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-header {
+            padding: 1rem 1.5rem;
+            background-color: rgba(10, 25, 48, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #chat-header h2 {
+            color: var(--light);
+            font-size: 1.4rem;
+        }
+
+        #chat-header span {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 15px;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.self {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.self .msg-content {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 20px 20px 0 20px;
+        }
+
+        .message img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid var(--primary);
+        }
+
+        .msg-content {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 20px 20px 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .msg-content strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .msg-content p {
+            line-height: 1.5;
+            margin: 0.5rem 0;
+        }
+
+        .msg-content small {
+            display: block;
+            text-align: left;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .message.self .msg-content small {
+            text-align: right;
+        }
+
+        /* Input Area */
+        #input-area {
+            padding: 1.2rem;
+            background-color: rgba(10, 25, 48, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border-radius: 30px;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--light);
+            font-size: 1rem;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        #message-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        #send-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        #send-btn:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 5px 15px rgba(219, 62, 177, 0.4);
+        }
+
+        /* Typing Indicator */
+        #typing-indicator {
+            padding: 0 1.5rem 1rem;
+            color: var(--gray);
+            font-style: italic;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 80px;
+            }
+            #sidebar h2 span, .channel-item span {
+                display: none;
+            }
+            .channel-item {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <i class="fas fa-fire"></i>
+            <h1>نار الدردشة</h1>
+        </div>
+        <div id="user-section">
+            <button id="login-btn" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+            </button>
+            <div id="user-info">
+                <img id="user-photo" width="45" height="45">
+                <span id="user-name"></span>
+                <button id="logout-btn" class="btn btn-outline">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar (Channels) -->
+        <div id="sidebar">
+            <h2><i class="fas fa-hashtag"></i> <span>القنوات</span></h2>
+            <ul id="channels-list">
+                <li class="channel-item active" data-channel="general">
+                    <i class="fas fa-fire"></i>
+                    <span>العامة 🔥</span>
+                </li>
+                <li class="channel-item" data-channel="random">
+                    <i class="fas fa-comment-dots"></i>
+                    <span>عامة 💬</span>
+                </li>
+                <li class="channel-item" data-channel="help">
+                    <i class="fas fa-question-circle"></i>
+                    <span>مساعدة ❓</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div id="chat-area">
+            <div id="chat-header">
+                <h2 id="current-channel">العامة 🔥</h2>
+                <span id="online-count">0 متصل</span>
+            </div>
+            <div id="chat-messages"></div>
+            <div id="typing-indicator"></div>
+            <div id="input-area">
+                <input type="text" id="message-input" placeholder="اكتب رسالة نارية...">
+                <button id="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <script>
+        // *********** [1] تهيئة Firebase *********** //
+        const firebaseConfig = {
+            apiKey: "AIzaSyAguAvkgdnbtkIsdBjR0Av0ikUOCbqc8lI",
+            authDomain: "chat-ttt-2023e.firebaseapp.com",
+            databaseURL: "https://chat-ttt-2023e-default-rtdb.firebaseio.com",
+            projectId: "chat-ttt-2023e",
+            storageBucket: "chat-ttt-2023e.firebasestorage.app",
+            messagingSenderId: "89047633906",
+            appId: "1:89047633906:web:1358af9c956746a120e56b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // *********** [2] نظام المستخدمين *********** //
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const userPhoto = document.getElementById('user-photo');
+        const userName = document.getElementById('user-name');
+
+        // تسجيل الدخول بجوجل
+        loginBtn.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => {
+                console.error("خطأ في التسجيل: ", error);
+            });
+        });
+
+        // تسجيل الخروج
+        logoutBtn.addEventListener('click', () => auth.signOut());
+
+        // تتبع حالة المستخدم
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                userInfo.style.display = 'flex';
+                userPhoto.src = user.photoURL;
+                userName.textContent = user.displayName;
+                loginBtn.style.display = 'none';
+                // بدء استماع القنوات بعد تسجيل الدخول
+                initChat();
+            } else {
+                userInfo.style.display = 'none';
+                loginBtn.style.display = 'block';
+                // إزالة المستمعين عند تسجيل الخروج
+                if (messageListener) messageListener();
+                if (typingListener) typingListener();
+                document.getElementById('chat-messages').innerHTML = '';
+            }
+        });
+
+        // *********** [3] نظام القنوات *********** //
+        let currentChannel = 'general';
+        let messageListener = null;
+        let typingListener = null;
+        const channelsList = document.getElementById('channels-list');
+        const currentChannelElement = document.getElementById('current-channel');
+
+        // تغيير القناة
+        channelsList.addEventListener('click', (e) => {
+            const channelItem = e.target.closest('.channel-item');
+            if (!channelItem) return;
+            
+            // تحديث القناة النشطة
+            document.querySelector('.channel-item.active').classList.remove('active');
+            channelItem.classList.add('active');
+            
+            // تغيير القناة الحالية
+            const newChannel = channelItem.dataset.channel;
+            if (newChannel !== currentChannel) {
+                currentChannel = newChannel;
+                currentChannelElement.textContent = channelItem.querySelector('span').textContent;
+                
+                // إعادة تحميل الرسائل للقناة الجديدة
+                loadMessages();
+            }
+        });
+
+        // *********** [4] نظام الدردشة *********** //
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // إرسال رسالة
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // بدء الدردشة
+        function initChat() {
+            loadMessages();
+            setupTypingIndicator();
+            trackOnlineStatus();
+        }
+
+        // تحميل الرسائل للقناة الحالية
+        function loadMessages() {
+            // إزالة المستمع السابق إن وجد
+            if (messageListener) messageListener();
+            
+            // الاستماع للرسائل الجديدة في القناة الحالية
+            messageListener = db.collection(`channels/${currentChannel}/messages`)
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    chatMessages.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const msg = doc.data();
+                        displayMessage(msg);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+        }
+
+        // عرض الرسالة
+        function displayMessage(msg) {
+            const user = auth.currentUser;
+            const isSelf = user && user.uid === msg.uid;
+            
+            const msgElement = document.createElement('div');
+            msgElement.className = `message ${isSelf ? 'self' : ''}`;
+            msgElement.innerHTML = `
+                <img src="${msg.photoURL}" alt="${msg.name}">
+                <div class="msg-content">
+                    <strong>${msg.name}</strong>
+                    ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width: 300px; border-radius: 10px; margin: 8px 0;">` : ''}
+                    <p>${msg.text || ''}</p>
+                    <small>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})</small>
+                </div>
+            `;
+            chatMessages.appendChild(msgElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // إرسال رسالة نصية
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            const user = auth.currentUser;
+            await db.collection(`channels/${currentChannel}/messages`).add({
+                text: message,
+                uid: user.uid,
+                name: user.displayName,
+                photoURL: user.photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            messageInput.value = '';
+        }
+
+        // *********** [5] مؤشر الكتابة *********** //
+        let typingTimeout;
+        const TYPING_TIMEOUT = 3000; // 3 ثواني
+
+        function setupTypingIndicator() {
+            // إزالة المستمع السابق إن وجد
+            if (typingListener) typingListener();
+            
+            const user = auth.currentUser;
+            const typingRef = db.collection(`channels/${currentChannel}/typing`).doc(user.uid);
+            
+            // الاستماع لتغيرات الكتابة
+            typingListener = db.collection(`channels/${currentChannel}/typing`)
+                .onSnapshot(snapshot => {
+                    const typers = [];
+                    snapshot.forEach(doc => {
+                        if (doc.id !== user.uid) typers.push(doc.data().name);
+                    });
+                    
+                    if (typers.length > 0) {
+                        typingIndicator.style.display = 'block';
+                        typingIndicator.textContent = `${typers.join(', ')} ${typers.length > 1 ? 'يكتبون' : 'يكتب'}...`;
+                    } else {
+                        typingIndicator.style.display = 'none';
+                    }
+                });
+            
+            // إرسال حالة الكتابة
+            messageInput.addEventListener('input', () => {
+                typingRef.set({
+                    name: user.displayName,
+                    timestamp: new Date()
+                });
+                
+                // إعادة ضبط المهلة
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    typingRef.delete();
+                }, TYPING_TIMEOUT);
+            });
+        }
+
+        // *********** [6] تتبع الحالة الاتصالية *********** //
+        function trackOnlineStatus() {
+            const onlineRef = db.collection('presence').doc(auth.currentUser.uid);
+            
+            // تحديث الحالة عند الاتصال
+            db.collection('connected').doc(auth.currentUser.uid).set({});
+            
+            // تحديث الحالة عند الانفصال
+            auth.onAuthStateChanged(user => {
+                if (!user) {
+                    onlineRef.delete();
+                }
+            });
+            
+            // عد المستخدمين المتصلين
+            db.collection('connected').onSnapshot(snapshot => {
+                document.getElementById('online-count').textContent = `${snapshot.size} متصل`;
+            });
+        }
+    </script>
+</body>
+</html>
