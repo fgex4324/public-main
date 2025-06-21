@@ -16,6 +16,7 @@
             --gray: #a0a0a0;
             --light-bg: #f0f2f5;
             --success: #4caf50;
+            --card-bg: rgba(15, 30, 55, 0.8);
         }
 
         * {
@@ -31,18 +32,22 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         /* Header Styles */
         header {
-            background-color: rgba(10, 25, 48, 0.9);
+            background-color: rgba(10, 25, 48, 0.95);
             backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
+            padding: 0.8rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--primary);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 100;
+            height: 70px;
         }
 
         .logo {
@@ -52,15 +57,16 @@
         }
 
         .logo h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 700;
         }
 
         .logo i {
             color: var(--primary);
-            font-size: 2rem;
+            font-size: 1.8rem;
         }
 
         /* User Section */
@@ -77,19 +83,21 @@
         }
 
         #user-photo {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary);
+            box-shadow: 0 0 10px rgba(219, 62, 177, 0.3);
         }
 
         #user-name {
             font-weight: 600;
+            font-size: 0.95rem;
         }
 
         .btn {
-            padding: 0.6rem 1.2rem;
+            padding: 0.5rem 1.1rem;
             border-radius: 30px;
             border: none;
             font-weight: 600;
@@ -98,6 +106,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 0.9rem;
         }
 
         .btn-primary {
@@ -117,44 +126,55 @@
         }
 
         /* Main Container */
-        .container {
+        .app-container {
             display: flex;
             flex: 1;
             overflow: hidden;
+            height: calc(100vh - 70px);
         }
 
         /* Sidebar (Channels) */
         #sidebar {
-            width: 280px;
-            background-color: rgba(5, 13, 26, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 1.5rem 1rem;
+            width: 250px;
+            background-color: rgba(5, 13, 26, 0.85);
+            backdrop-filter: blur(5px);
+            padding: 1.2rem 1rem;
             overflow-y: auto;
             border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 50;
         }
 
         #sidebar h2 {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
             color: var(--primary);
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
             gap: 10px;
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #channels-list {
             list-style: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0;
         }
 
         .channel-item {
-            padding: 0.8rem 1rem;
+            padding: 0.7rem 1rem;
             border-radius: 8px;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 0.95rem;
         }
 
         .channel-item:hover, .channel-item.active {
@@ -163,6 +183,8 @@
 
         .channel-item i {
             color: var(--primary);
+            width: 24px;
+            text-align: center;
         }
 
         /* Chat Area */
@@ -170,40 +192,57 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            background: rgba(8, 18, 35, 0.5);
+            backdrop-filter: blur(5px);
+            overflow: hidden;
         }
 
         #chat-header {
-            padding: 1rem 1.5rem;
+            padding: 0.9rem 1.5rem;
             background-color: rgba(10, 25, 48, 0.7);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         #chat-header h2 {
             color: var(--light);
-            font-size: 1.4rem;
+            font-size: 1.3rem;
+            font-weight: 600;
         }
 
         #chat-header span {
             color: var(--gray);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+        }
+
+        /* Chat Messages Container */
+        #chat-messages-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
         }
 
         #chat-messages {
             flex: 1;
-            padding: 1.5rem;
+            padding: 1.2rem 1.5rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1.1rem;
+            scroll-behavior: smooth;
         }
 
         .message {
             display: flex;
-            gap: 15px;
-            max-width: 80%;
+            gap: 12px;
+            max-width: 85%;
             animation: fadeIn 0.3s ease;
         }
 
@@ -220,41 +259,47 @@
         .message.self .msg-content {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            border-radius: 20px 20px 0 20px;
+            border-radius: 18px 18px 0 18px;
         }
 
         .message img {
-            width: 45px;
-            height: 45px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
             border: 2px solid var(--primary);
+            align-self: flex-start;
         }
 
         .msg-content {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 0.8rem 1.2rem;
-            border-radius: 20px 20px 20px 0;
-            backdrop-filter: blur(10px);
+            background-color: var(--card-bg);
+            padding: 0.8rem 1.1rem;
+            border-radius: 18px 18px 18px 0;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 80%;
         }
 
         .msg-content strong {
             display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
+            margin-bottom: 4px;
+            font-size: 0.88rem;
+            font-weight: 600;
         }
 
         .msg-content p {
             line-height: 1.5;
-            margin: 0.5rem 0;
+            margin: 0.4rem 0;
+            font-size: 0.95rem;
         }
 
         .msg-content small {
             display: block;
             text-align: left;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: rgba(255, 255, 255, 0.7);
+            margin-top: 0.3rem;
         }
 
         .message.self .msg-content small {
@@ -263,69 +308,143 @@
 
         /* Input Area */
         #input-area {
-            padding: 1.2rem;
+            padding: 1rem;
             background-color: rgba(10, 25, 48, 0.7);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            align-items: center;
         }
 
         #message-input {
             flex: 1;
-            padding: 1rem 1.5rem;
+            padding: 0.9rem 1.4rem;
             border-radius: 30px;
             border: none;
             background: rgba(255, 255, 255, 0.08);
             color: var(--light);
-            font-size: 1rem;
+            font-size: 0.95rem;
             outline: none;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
 
         #message-input:focus {
             background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(219, 62, 177, 0.3);
         }
 
         #send-btn {
-            width: 55px;
-            height: 55px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border: none;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
+            flex-shrink: 0;
         }
 
         #send-btn:hover {
-            transform: scale(1.05) rotate(5deg);
+            transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(219, 62, 177, 0.4);
         }
 
         /* Typing Indicator */
         #typing-indicator {
-            padding: 0 1.5rem 1rem;
+            padding: 0 1.5rem 0.8rem;
             color: var(--gray);
             font-style: italic;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             display: none;
+            background: rgba(10, 25, 48, 0.5);
+        }
+
+        /* Date Separator */
+        .date-separator {
+            text-align: center;
+            margin: 1rem 0;
+            position: relative;
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        .date-separator:before,
+        .date-separator:after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin: auto;
+        }
+
+        .date-separator span {
+            padding: 0 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .welcome-message h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
             #sidebar {
-                width: 80px;
+                width: 70px;
+                padding: 1rem 0.5rem;
             }
             #sidebar h2 span, .channel-item span {
                 display: none;
             }
             .channel-item {
                 justify-content: center;
+                padding: 0.8rem;
             }
+            
+            header {
+                padding: 0.8rem 1rem;
+            }
+            
+            #user-name {
+                display: none;
+            }
+            
+            .logo h1 {
+                font-size: 1.3rem;
+            }
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(219, 62, 177, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(219, 62, 177, 0.7);
         }
     </style>
 </head>
@@ -337,19 +456,19 @@
         </div>
         <div id="user-section">
             <button id="login-btn" class="btn btn-primary">
-                <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                <i class="fas fa-sign-in-alt"></i> <span class="btn-text">تسجيل الدخول</span>
             </button>
             <div id="user-info">
-                <img id="user-photo" width="45" height="45">
+                <img id="user-photo" width="40" height="40">
                 <span id="user-name"></span>
                 <button id="logout-btn" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> خروج
+                    <i class="fas fa-sign-out-alt"></i> <span class="btn-text">خروج</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <div class="container">
+    <div class="app-container">
         <!-- Sidebar (Channels) -->
         <div id="sidebar">
             <h2><i class="fas fa-hashtag"></i> <span>القنوات</span></h2>
@@ -366,6 +485,18 @@
                     <i class="fas fa-question-circle"></i>
                     <span>مساعدة ❓</span>
                 </li>
+                <li class="channel-item" data-channel="tech">
+                    <i class="fas fa-microchip"></i>
+                    <span>تكنولوجيا 💻</span>
+                </li>
+                <li class="channel-item" data-channel="music">
+                    <i class="fas fa-music"></i>
+                    <span>موسيقى 🎵</span>
+                </li>
+                <li class="channel-item" data-channel="gaming">
+                    <i class="fas fa-gamepad"></i>
+                    <span>ألعاب 🎮</span>
+                </li>
             </ul>
         </div>
 
@@ -375,8 +506,19 @@
                 <h2 id="current-channel">العامة 🔥</h2>
                 <span id="online-count">0 متصل</span>
             </div>
-            <div id="chat-messages"></div>
+            
+            <div id="chat-messages-container">
+                <div id="chat-messages">
+                    <!-- الرسائل تظهر هنا -->
+                    <div class="welcome-message">
+                        <h3>مرحبًا بك في نار الدردشة! 🔥</h3>
+                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن</p>
+                    </div>
+                </div>
+            </div>
+            
             <div id="typing-indicator"></div>
+            
             <div id="input-area">
                 <input type="text" id="message-input" placeholder="اكتب رسالة نارية...">
                 <button id="send-btn">
@@ -442,6 +584,7 @@
                 if (messageListener) messageListener();
                 if (typingListener) typingListener();
                 document.getElementById('chat-messages').innerHTML = '';
+                document.getElementById('chat-messages').innerHTML = '<div class="welcome-message"><h3>مرحبًا بك في نار الدردشة! 🔥</h3><p>سجّل الدخول للبدء في المحادثة مع الأصدقاء</p></div>';
             }
         });
 
@@ -496,15 +639,38 @@
             // إزالة المستمع السابق إن وجد
             if (messageListener) messageListener();
             
+            // مسح الرسائل الحالية وإظهار مؤشر تحميل
+            chatMessages.innerHTML = '<div class="loading">جاري تحميل الرسائل...</div>';
+            
             // الاستماع للرسائل الجديدة في القناة الحالية
             messageListener = db.collection(`channels/${currentChannel}/messages`)
                 .orderBy('timestamp', 'asc')
                 .onSnapshot(snapshot => {
                     chatMessages.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        chatMessages.innerHTML = '<div class="welcome-message"><h3>مرحبًا بك في قناة ' + currentChannelElement.textContent + '</h3><p>كن أول من يبدأ المحادثة في هذه القناة!</p></div>';
+                        return;
+                    }
+                    
+                    let lastDate = null;
                     snapshot.forEach(doc => {
                         const msg = doc.data();
+                        
+                        // إضافة فاصل تاريخ إذا تغير التاريخ
+                        const msgDate = new Date(msg.timestamp?.toDate()).toLocaleDateString();
+                        if (msgDate !== lastDate) {
+                            const dateSeparator = document.createElement('div');
+                            dateSeparator.className = 'date-separator';
+                            dateSeparator.innerHTML = `<span>${msgDate}</span>`;
+                            chatMessages.appendChild(dateSeparator);
+                            lastDate = msgDate;
+                        }
+                        
                         displayMessage(msg);
                     });
+                    
+                    // التمرير إلى أحدث رسالة
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 });
         }
@@ -522,10 +688,12 @@
                     <strong>${msg.name}</strong>
                     ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width: 300px; border-radius: 10px; margin: 8px 0;">` : ''}
                     <p>${msg.text || ''}</p>
-                    <small>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})</small>
+                    <small>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
                 </div>
             `;
             chatMessages.appendChild(msgElement);
+            
+            // التمرير إلى أحدث رسالة
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
