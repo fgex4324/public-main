@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نار الدردشة - موقع يدمر الساحة 🔥</title>
+    <title>نار الدردشة - منصة الكتابة الذكية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -17,8 +17,9 @@
             --light-bg: #f0f2f5;
             --success: #4caf50;
             --card-bg: rgba(15, 30, 55, 0.8);
-            --border-radius: 12px;
-            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            --border-radius: 16px;
+            --box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+            --input-height: 70px;
         }
 
         * {
@@ -35,45 +36,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-        }
-
-        /* Container Boundaries */
-        .boundary {
-            position: fixed;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        .boundary-top {
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 15px var(--primary);
-        }
-        .boundary-bottom {
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--secondary), var(--primary));
-            box-shadow: 0 0 15px var(--primary);
-        }
-        .boundary-left {
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: linear-gradient(180deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 15px var(--primary);
-        }
-        .boundary-right {
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: linear-gradient(180deg, var(--secondary), var(--primary));
-            box-shadow: 0 0 15px var(--primary);
+            padding-bottom: var(--input-height);
         }
 
         /* Header Styles */
@@ -296,6 +259,7 @@
             backdrop-filter: blur(5px);
             overflow: hidden;
             border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            position: relative;
         }
 
         #chat-header {
@@ -306,6 +270,7 @@
             align-items: center;
             gap: 12px;
             position: relative;
+            z-index: 10;
         }
 
         #chat-header:after {
@@ -351,6 +316,7 @@
             flex-direction: column;
             gap: 1.1rem;
             scroll-behavior: smooth;
+            padding-bottom: 20px;
         }
 
         .message {
@@ -450,17 +416,30 @@
             text-align: right;
         }
 
-        /* Input Area - Fixed the overflow issue */
+        /* Input Area - Fixed & Responsive */
+        #input-container {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
         #input-area {
             padding: 0.8rem;
-            background-color: rgba(10, 25, 48, 0.7);
+            background-color: rgba(10, 25, 48, 0.9);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             gap: 8px;
             align-items: center;
-            margin: 0 5px 5px;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            border-radius: var(--border-radius);
             position: relative;
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(219, 62, 177, 0.3);
+            backdrop-filter: blur(5px);
+            height: var(--input-height);
+            transition: all 0.3s ease;
         }
 
         #input-area:before {
@@ -478,27 +457,28 @@
             padding: 0.9rem 1.4rem;
             border-radius: 30px;
             border: none;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.1);
             color: var(--light);
-            font-size: 0.95rem;
+            font-size: 1rem;
             outline: none;
             transition: all 0.3s;
-            border: 1px solid rgba(219, 62, 177, 0.2);
+            border: 1px solid rgba(219, 62, 177, 0.3);
+            height: 100%;
         }
 
         #message-input:focus {
             background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 2px rgba(219, 62, 177, 0.3);
+            box-shadow: 0 0 0 2px rgba(219, 62, 177, 0.5);
         }
 
         #send-btn {
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border: none;
             color: white;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -506,13 +486,13 @@
             transition: all 0.3s;
             flex-shrink: 0;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             position: relative;
         }
 
         #send-btn:hover:not(:disabled) {
             transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(219, 62, 177, 0.5);
+            box-shadow: 0 5px 20px rgba(219, 62, 177, 0.7);
         }
 
         #send-btn.loading .fa-paper-plane {
@@ -522,8 +502,8 @@
         #send-btn.loading:after {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-top-color: white;
             border-radius: 50%;
@@ -543,9 +523,10 @@
             display: none;
             background: rgba(10, 25, 48, 0.5);
             position: absolute;
-            bottom: 60px;
+            bottom: calc(var(--input-height) + 10px);
             width: 100%;
             text-align: center;
+            z-index: 5;
         }
 
         /* Date Separator */
@@ -612,7 +593,7 @@
         /* Toast Notification */
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(var(--input-height) + 20px);
             right: 20px;
             padding: 15px 25px;
             background: var(--card-bg);
@@ -673,13 +654,13 @@
             
             #message-input {
                 padding: 0.8rem 1.2rem;
-                font-size: 0.9rem;
+                font-size: 0.95rem;
             }
             
             #send-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 1rem;
+                width: 48px;
+                height: 48px;
+                font-size: 1.1rem;
             }
             
             .msg-content {
@@ -688,17 +669,27 @@
         }
         
         @media (max-width: 480px) {
+            body {
+                padding-bottom: 80px;
+            }
+            
+            :root {
+                --input-height: 65px;
+            }
+            
             .app-container {
                 margin: 0 5px 5px;
             }
             
             #message-input {
                 padding: 0.7rem 1rem;
+                font-size: 0.95rem;
             }
             
             #send-btn {
-                width: 40px;
-                height: 40px;
+                width: 44px;
+                height: 44px;
+                font-size: 1rem;
             }
             
             .msg-content {
@@ -764,15 +755,18 @@
                 opacity: 0;
             }
         }
+        
+        /* Input focus animation */
+        .input-focused #input-container {
+            transform: translateY(-10px);
+        }
+        
+        .input-focused #input-area {
+            box-shadow: 0 0 25px rgba(219, 62, 177, 0.5);
+        }
     </style>
 </head>
 <body>
-    <!-- Boundary Elements -->
-    <div class="boundary boundary-top"></div>
-    <div class="boundary boundary-bottom"></div>
-    <div class="boundary boundary-left"></div>
-    <div class="boundary boundary-right"></div>
-    
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
     
@@ -842,20 +836,23 @@
                     <!-- الرسائل تظهر هنا -->
                     <div class="welcome-message">
                         <h3>مرحبًا بك في نار الدردشة! 🔥</h3>
-                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. تم إصلاح مشاكل تسجيل الدخول وتحسين منطقة الإرسال!</p>
-                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منصة الإرسال الآن تعمل بشكل مثالي على جميع الشاشات</p>
+                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. تم تحسين منطقة الكتابة لتكون ثابتة وتظهر بالكامل!</p>
+                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">جرب الضغط على منطقة الكتابة لترتفع للأعلى!</p>
                     </div>
                 </div>
             </div>
             
             <div id="typing-indicator"></div>
-            
-            <div id="input-area">
-                <input type="text" id="message-input" placeholder="اكتب رسالة نارية...">
-                <button id="send-btn">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
+        </div>
+    </div>
+    
+    <!-- Input Container - Fixed at bottom -->
+    <div id="input-container">
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="اكتب رسالة نارية...">
+            <button id="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </div>
 
@@ -888,6 +885,11 @@
         const userPhoto = document.getElementById('user-photo');
         const userName = document.getElementById('user-name');
         const toast = document.getElementById('toast');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const body = document.body;
 
         // وظيفة لعرض الإشعارات
         function showToast(message, type = 'info') {
@@ -940,7 +942,7 @@
                         document.querySelector('.welcome-message').innerHTML = `
                             <h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
                             <p>أنت الآن في القناة العامة. ابدأ المحادثة الآن أو اختر قناة أخرى من القائمة الجانبية</p>
-                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منصة الإرسال الآن تعمل بشكل مثالي!</p>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">منطقة الكتابة ثابتة وتظهر بالكامل!</p>
                         `;
                     }
                 }, 1000);
@@ -983,17 +985,22 @@
         });
 
         // *********** [4] نظام الدردشة *********** //
-        const messageInput = document.getElementById('message-input');
-        const sendBtn = document.getElementById('send-btn');
-        const chatMessages = document.getElementById('chat-messages');
-        const typingIndicator = document.getElementById('typing-indicator');
-
         // إرسال رسالة
         sendBtn.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', e => {
             if (e.key === 'Enter' && !sendBtn.disabled) {
                 sendMessage();
             }
+        });
+
+        // إدارة حالة التركيز على حقل الإدخال
+        messageInput.addEventListener('focus', () => {
+            body.classList.add('input-focused');
+            scrollToBottom();
+        });
+
+        messageInput.addEventListener('blur', () => {
+            body.classList.remove('input-focused');
         });
 
         // بدء الدردشة
@@ -1047,7 +1054,7 @@
                     });
                     
                     // التمرير إلى أحدث رسالة
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    scrollToBottom();
                 });
         }
 
@@ -1070,6 +1077,11 @@
             chatMessages.appendChild(msgElement);
             
             // التمرير إلى أحدث رسالة
+            scrollToBottom();
+        }
+
+        // التمرير إلى أسفل منطقة الرسائل
+        function scrollToBottom() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
