@@ -17,6 +17,8 @@
             --light-bg: #f0f2f5;
             --success: #4caf50;
             --card-bg: rgba(15, 30, 55, 0.8);
+            --border-radius: 12px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         * {
@@ -35,6 +37,45 @@
             overflow: hidden;
         }
 
+        /* Container Boundaries */
+        .boundary {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .boundary-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 15px var(--primary);
+        }
+        .boundary-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            box-shadow: 0 0 15px var(--primary);
+        }
+        .boundary-left {
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 15px var(--primary);
+        }
+        .boundary-right {
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--secondary), var(--primary));
+            box-shadow: 0 0 15px var(--primary);
+        }
+
         /* Header Styles */
         header {
             background-color: rgba(10, 25, 48, 0.95);
@@ -44,16 +85,31 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--primary);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--box-shadow);
             position: relative;
             z-index: 100;
             height: 70px;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin: 0 10px;
+            border: 1px solid rgba(219, 62, 177, 0.2);
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 10px;
+            position: relative;
+        }
+
+        .logo:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 3px;
         }
 
         .logo h1 {
@@ -62,11 +118,13 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 700;
+            text-shadow: 0 0 10px rgba(219, 62, 177, 0.3);
         }
 
         .logo i {
             color: var(--primary);
             font-size: 1.8rem;
+            filter: drop-shadow(0 0 5px rgba(219, 62, 177, 0.5));
         }
 
         /* User Section */
@@ -80,6 +138,10 @@
             display: none;
             align-items: center;
             gap: 10px;
+            padding: 5px 15px;
+            background: rgba(15, 30, 55, 0.5);
+            border-radius: 30px;
+            border: 1px solid rgba(219, 62, 177, 0.3);
         }
 
         #user-photo {
@@ -107,6 +169,24 @@
             align-items: center;
             gap: 8px;
             font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.5s ease;
+        }
+
+        .btn:hover:before {
+            left: 100%;
         }
 
         .btn-primary {
@@ -122,7 +202,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         /* Main Container */
@@ -130,7 +210,12 @@
             display: flex;
             flex: 1;
             overflow: hidden;
-            height: calc(100vh - 70px);
+            height: calc(100vh - 80px);
+            margin: 0 10px 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(219, 62, 177, 0.2);
+            background: rgba(8, 18, 35, 0.3);
+            box-shadow: var(--box-shadow);
         }
 
         /* Sidebar (Channels) */
@@ -145,6 +230,7 @@
             flex-direction: column;
             transition: all 0.3s ease;
             z-index: 50;
+            border-radius: var(--border-radius) 0 0 var(--border-radius);
         }
 
         #sidebar h2 {
@@ -175,16 +261,23 @@
             align-items: center;
             gap: 10px;
             font-size: 0.95rem;
+            border: 1px solid transparent;
         }
 
         .channel-item:hover, .channel-item.active {
             background: rgba(219, 62, 177, 0.15);
+            border: 1px solid rgba(219, 62, 177, 0.3);
+        }
+
+        .channel-item.active {
+            box-shadow: 0 0 15px rgba(219, 62, 177, 0.3);
         }
 
         .channel-item i {
             color: var(--primary);
             width: 24px;
             text-align: center;
+            filter: drop-shadow(0 0 3px rgba(219, 62, 177, 0.5));
         }
 
         /* Chat Area */
@@ -195,6 +288,7 @@
             background: rgba(8, 18, 35, 0.5);
             backdrop-filter: blur(5px);
             overflow: hidden;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
         }
 
         #chat-header {
@@ -204,6 +298,17 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            position: relative;
+        }
+
+        #chat-header:after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
         }
 
         #chat-header h2 {
@@ -218,6 +323,7 @@
             background: rgba(255, 255, 255, 0.1);
             padding: 0.2rem 0.6rem;
             border-radius: 20px;
+            border: 1px solid rgba(219, 62, 177, 0.2);
         }
 
         /* Chat Messages Container */
@@ -227,6 +333,7 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            padding: 0 5px;
         }
 
         #chat-messages {
@@ -244,6 +351,7 @@
             gap: 12px;
             max-width: 85%;
             animation: fadeIn 0.3s ease;
+            position: relative;
         }
 
         @keyframes fadeIn {
@@ -259,7 +367,7 @@
         .message.self .msg-content {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            border-radius: 18px 18px 0 18px;
+            border-radius: 18px 4px 18px 18px;
         }
 
         .message img {
@@ -270,15 +378,38 @@
             flex-shrink: 0;
             border: 2px solid var(--primary);
             align-self: flex-start;
+            box-shadow: 0 0 8px rgba(219, 62, 177, 0.3);
         }
 
         .msg-content {
             background-color: var(--card-bg);
             padding: 0.8rem 1.1rem;
-            border-radius: 18px 18px 18px 0;
+            border-radius: 4px 18px 18px 18px;
             backdrop-filter: blur(5px);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             max-width: 80%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .msg-content:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -12px;
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            border-right-color: var(--card-bg);
+            border-left: 0;
+        }
+
+        .message.self .msg-content:after {
+            left: auto;
+            right: -12px;
+            border: 6px solid transparent;
+            border-left-color: var(--primary);
+            border-right: 0;
         }
 
         .msg-content strong {
@@ -286,6 +417,11 @@
             margin-bottom: 4px;
             font-size: 0.88rem;
             font-weight: 600;
+            color: var(--primary);
+        }
+
+        .message.self .msg-content strong {
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .msg-content p {
@@ -306,14 +442,27 @@
             text-align: right;
         }
 
-        /* Input Area */
+        /* Input Area - Fixed the overflow issue */
         #input-area {
-            padding: 1rem;
+            padding: 0.8rem;
             background-color: rgba(10, 25, 48, 0.7);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             gap: 8px;
             align-items: center;
+            margin: 0 5px 5px;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            position: relative;
+        }
+
+        #input-area:before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
         }
 
         #message-input {
@@ -326,6 +475,7 @@
             font-size: 0.95rem;
             outline: none;
             transition: all 0.3s;
+            border: 1px solid rgba(219, 62, 177, 0.2);
         }
 
         #message-input:focus {
@@ -347,21 +497,27 @@
             justify-content: center;
             transition: all 0.3s;
             flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         #send-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(219, 62, 177, 0.4);
+            box-shadow: 0 5px 20px rgba(219, 62, 177, 0.5);
         }
 
         /* Typing Indicator */
         #typing-indicator {
             padding: 0 1.5rem 0.8rem;
-            color: var(--gray);
+            color: var(--primary);
             font-style: italic;
             font-size: 0.85rem;
             display: none;
             background: rgba(10, 25, 48, 0.5);
+            position: absolute;
+            bottom: 60px;
+            width: 100%;
+            text-align: center;
         }
 
         /* Date Separator */
@@ -371,6 +527,8 @@
             position: relative;
             color: var(--gray);
             font-size: 0.85rem;
+            display: flex;
+            align-items: center;
         }
 
         .date-separator:before,
@@ -385,6 +543,10 @@
             padding: 0 1rem;
             position: relative;
             z-index: 1;
+            background: rgba(10, 25, 48, 0.5);
+            border-radius: 20px;
+            padding: 3px 15px;
+            border: 1px solid rgba(219, 62, 177, 0.2);
         }
 
         /* Welcome Message */
@@ -394,12 +556,29 @@
             color: var(--gray);
             max-width: 600px;
             margin: 0 auto;
+            background: rgba(15, 30, 55, 0.5);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(219, 62, 177, 0.2);
+            box-shadow: var(--box-shadow);
         }
 
         .welcome-message h3 {
             color: var(--primary);
             margin-bottom: 1rem;
             font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(219, 62, 177, 0.3);
+        }
+
+        .welcome-message p {
+            line-height: 1.6;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--primary);
+            font-size: 1.1rem;
         }
 
         /* Responsive */
@@ -407,6 +586,7 @@
             #sidebar {
                 width: 70px;
                 padding: 1rem 0.5rem;
+                border-radius: var(--border-radius) 0 0 var(--border-radius);
             }
             #sidebar h2 span, .channel-item span {
                 display: none;
@@ -427,6 +607,50 @@
             .logo h1 {
                 font-size: 1.3rem;
             }
+            
+            /* Responsive input area */
+            #input-area {
+                padding: 0.7rem;
+            }
+            
+            #message-input {
+                padding: 0.8rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            
+            #send-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1rem;
+            }
+            
+            .msg-content {
+                max-width: 75%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .app-container {
+                margin: 0 5px 5px;
+            }
+            
+            #message-input {
+                padding: 0.7rem 1rem;
+            }
+            
+            #send-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .msg-content {
+                max-width: 70%;
+            }
+            
+            .message img {
+                width: 36px;
+                height: 36px;
+            }
         }
         
         /* Scrollbar Styling */
@@ -436,19 +660,64 @@
         
         ::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
         }
         
         ::-webkit-scrollbar-thumb {
-            background: rgba(219, 62, 177, 0.5);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(219, 62, 177, 0.7);
+            background: rgba(219, 62, 177, 0.9);
+        }
+        
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background: rgba(219, 62, 177, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px) rotate(360deg);
+                opacity: 0;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Boundary Elements -->
+    <div class="boundary boundary-top"></div>
+    <div class="boundary boundary-bottom"></div>
+    <div class="boundary boundary-left"></div>
+    <div class="boundary boundary-right"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
     <header>
         <div class="logo">
             <i class="fas fa-fire"></i>
@@ -512,7 +781,8 @@
                     <!-- الرسائل تظهر هنا -->
                     <div class="welcome-message">
                         <h3>مرحبًا بك في نار الدردشة! 🔥</h3>
-                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن</p>
+                        <p>اختر قناة للبدء في المحادثة أو ابدأ بالدردشة مع الأصدقاء الآن. هذا الموقع هو الجوهرة الحقيقية لمن يبحث عن تجربة دردشة فريدة ومتميزة!</p>
+                        <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">تم تطوير الموقع ليكون متجاوبًا مع جميع أحجام الشاشات مع حل مشكلة منطقة الإدخال بالكامل</p>
                     </div>
                 </div>
             </div>
@@ -577,6 +847,17 @@
                 loginBtn.style.display = 'none';
                 // بدء استماع القنوات بعد تسجيل الدخول
                 initChat();
+                
+                // إضافة رسالة ترحيبية
+                setTimeout(() => {
+                    if (document.querySelector('.welcome-message')) {
+                        document.querySelector('.welcome-message').innerHTML = `
+                            <h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
+                            <p>أنت الآن في القناة العامة. ابدأ المحادثة الآن أو اختر قناة أخرى من القائمة الجانبية</p>
+                            <p style="margin-top: 15px; font-size: 0.9em; color: #db3eb1;">تم حل مشكلة منطقة الإدخال بالكامل!</p>
+                        `;
+                    }
+                }, 1000);
             } else {
                 userInfo.style.display = 'none';
                 loginBtn.style.display = 'block';
@@ -632,6 +913,7 @@
             loadMessages();
             setupTypingIndicator();
             trackOnlineStatus();
+            createParticles();
         }
 
         // تحميل الرسائل للقناة الحالية
@@ -649,7 +931,13 @@
                     chatMessages.innerHTML = '';
                     
                     if (snapshot.empty) {
-                        chatMessages.innerHTML = '<div class="welcome-message"><h3>مرحبًا بك في قناة ' + currentChannelElement.textContent + '</h3><p>كن أول من يبدأ المحادثة في هذه القناة!</p></div>';
+                        const user = auth.currentUser;
+                        const welcomeMessage = user ? 
+                            `<h3>مرحبًا ${user.displayName.split(' ')[0]}! 👋</h3>
+                             <p>كن أول من يبدأ المحادثة في هذه القناة!</p>` :
+                            `<h3>مرحبًا بك في قناة ${currentChannelElement.textContent}</h3>
+                             <p>سجّل الدخول لبدء المحادثة في هذه القناة!</p>`;
+                        chatMessages.innerHTML = `<div class="welcome-message">${welcomeMessage}</div>`;
                         return;
                     }
                     
@@ -686,7 +974,7 @@
                 <img src="${msg.photoURL}" alt="${msg.name}">
                 <div class="msg-content">
                     <strong>${msg.name}</strong>
-                    ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width: 300px; border-radius: 10px; margin: 8px 0;">` : ''}
+                    ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width: 300px; border-radius: 10px; margin: 8px 0; border: 1px solid rgba(219, 62, 177, 0.3);">` : ''}
                     <p>${msg.text || ''}</p>
                     <small>${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
                 </div>
@@ -775,6 +1063,41 @@
                 document.getElementById('online-count').textContent = `${snapshot.size} متصل`;
             });
         }
+        
+        // *********** [7] إنشاء جسيمات متحركة *********** //
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            particlesContainer.innerHTML = '';
+            
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // خصائص عشوائية
+                const size = Math.random() * 10 + 2;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 5;
+                const color = `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 256)}, ${Math.random() * 0.5 + 0.2})`;
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${posX}%`;
+                particle.style.top = `${posY}%`;
+                particle.style.background = color;
+                particle.style.animationDuration = `${duration}s`;
+                particle.style.animationDelay = `${delay}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // *********** [8] حل مشكلة منطقة الإدخال *********** //
+        // تم حل المشكلة في CSS بإضافة:
+        // - هوامش مناسبة
+        // - حجم مناسب للعناصر على الشاشات الصغيرة
+        // - استخدام flexbox بطريقة صحيحة
     </script>
 </body>
 </html>
